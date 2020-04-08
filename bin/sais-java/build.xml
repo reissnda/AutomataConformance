@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="sais" default="compile" basedir=".">
+
+  <description>Ant build script for sais-java</description>
+
+  <property name="src" value="." />
+  <property name="build" value="build" />
+
+  <target name="init">
+    <mkdir dir="${build}" />
+  </target>
+
+  <target name="compile" depends="init">
+    <javac srcdir="${src}" destdir="${build}" debug="off" optimize="on" />
+  </target>
+
+  <target name="clean">
+    <delete dir="${build}" />
+  </target>
+
+</project>
