@@ -1,0 +1,101 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.5'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java-library'
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+
+    api group: 'org.apache.commons', name: 'commons-lang3'
+    api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+
+    api group: 'org.eclipse.collections', name: 'eclipse-collections', version: '10.4.0'
+    api group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+
+    api group: 'org.jgrapht', name: 'jgrapht-core', version: '1.0.0'
+    api group: 'org.jgrapht', name: 'jgrapht-ext', version: '1.0.0'
+    api group: 'jgraph', name: 'jgraph', version: '5.13.0.0'
+
+    api group: 'org.jbpt', name: 'jbpt-core', version: '0.3.1'
+    api group: 'org.jbpt', name: 'jbpt-petri', version: '0.3.1'
+
+    api group: 'net.sf.trove4j', name: 'trove4j', version: '3.0.3'
+    api group: 'colt', name: 'colt', version: '1.2.0'
+
+    api group: 'xmlpull', name: 'xmlpull', version: '1.1.3.1'
+
+    api group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.8.4'
+    api group: 'net.sf.kxml', name: 'kxml2', version: '2.3.0'
+
+    // TODO upgrade to fasterxml.jackson
+    implementation group: 'org.codehaus.jackson', name: 'jackson-core-asl', version: '1.9.13'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+
+    api files('../Libraries/AcceptingPetriNet.jar')
+    api files('../Libraries/AlphaMiner.jar')
+    api files('../Libraries/AlphaMiner.jar')
+    api files('../Libraries/AntiAlignments.jar')
+    api files('../Libraries/BasicUtils.jar')
+    api files('../Libraries/BPMN.jar')
+    api files('../Libraries/BPMNMiner.jar')
+    api files('../Libraries/CNet.jar')
+    api files('../Libraries/DecomposedReplayer.jar')
+    api files('../Libraries/EfficientStorage.jar')
+    api files('../Libraries/ETConformance.jar')
+    api files('../Libraries/ILPMiner.jar')
+    api files('../Libraries/InductiveMiner.jar')
+    api files('../Libraries/Log.jar')
+    api files('../Libraries/LogAbstractions.jar')
+    api files('../Libraries/LogToDAFSA.jar')
+
+    api files('../Libraries/OpenXES-20160212.jar')
+    api files('../Libraries/OpenXES-XStream-20160212.jar')
+
+    api files('../Libraries/PatternAbstractions.jar')
+    api files('../Libraries/PetriNets.jar')
+    api files('../Libraries/PNAnalysis.jar')
+    api files('../Libraries/PNetAlignmentAnalysis.jar')
+    api files('../Libraries/PNetReplayer.jar')
+    api files('../Libraries/ProcessTree.jar')
+    api files('../Libraries/ProLoCon.jar')
+    api files('../Libraries/ProM-Plugins.jar')
+    api files('../Libraries/Properties.jar')
+    api files('../Libraries/SignatureDiscovery.jar')
+    api files('../Libraries/Spex.jar')
+    api files('../Libraries/TransitionSystems.jar')
+    api files('../Libraries/Widgets.jar')
+
+    api files('../Libraries/prom6-contexts-6.5-1.jar')
+    api files('../Libraries/prom6-framework-6.5-1.jar')
+    api files('../Libraries/prom6-models-6.5.jar')
+
+    api files('../Libraries/uitopia-6.5-1.jar')
+
+    api files('../Libraries/lpsolve55j.jar')
+
+    api files('../Libraries/xmlbeans-3.1.0.jar')
+
+    // BPMN importings
+    api files('../Libraries/slickerbox1-6.5.jar')
+    api files('../Libraries/tablelayout.jar')
+
+}
+
+test {
+    useJUnitPlatform()
+}
+

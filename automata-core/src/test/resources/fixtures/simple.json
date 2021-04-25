@@ -1,0 +1,25 @@
+{
+  "alignmentResults" : [ {
+    "nodeInstanceLst" : [ [ "a", "b", "c", "d" ] ],
+    "stepTypesLst" : [ [ "LMGOOD", "LMGOOD", "MREAL", "LMGOOD" ] ],
+    "traceIndex" : [ 0 ],
+    "info" : {
+      "Raw Fitness Cost" : 1.0,
+      "Calculation Time (ms)" : 1.0,
+      "Num. States" : 14.0,
+      "#Alignments" : 1.0,
+      "Trace Fitness" : 0.8333333333333334,
+      "Move-Model Fitness" : 0.75,
+      "Trace Length" : 3.0,
+      "Move-Log Fitness" : 1.0,
+      "Queued States" : 29.0
+    },
+    "infoObject" : null,
+    "reliable" : true,
+    "caseIDs" : [ "0" ],
+    "singleInfo" : [ ]
+  } ],
+  "caseIDs" : {
+    "0" : "Case3.0"
+  }
+}

@@ -1,0 +1,4 @@
+rootProject.name = 'AutomataConformance'
+include 'automata-core'
+include 'cli'
+include 'web'

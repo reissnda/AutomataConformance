@@ -1,0 +1,16 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.5'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+}
+
+dependencies {
+    implementation project(':automata-core')
+
+    implementation group: 'org.apache.poi', name: 'poi', version: '5.0.0'
+    implementation group: 'org.apache.poi', name: 'poi-ooxml', version: '5.0.0'
+    implementation group: 'org.eclipse.collections', name: 'eclipse-collections', version: '10.4.0'
+}
+
+test {
+    useJUnitPlatform()
+}
