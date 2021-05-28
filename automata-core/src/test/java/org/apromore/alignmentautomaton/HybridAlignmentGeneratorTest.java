@@ -39,6 +39,12 @@ class HybridAlignmentGeneratorTest {
   }
 
   @Test
+  @Disabled
+  void loan() throws Exception {
+    runTest("loan.xes.gz", "loan.bpmn", "build/loan.json");
+  }
+
+  @Test
   void simple() throws Exception {
     runTest("simple.xes", "simple.bpmn", "build/simple.json");
   }
@@ -55,8 +61,6 @@ class HybridAlignmentGeneratorTest {
     Petrinet petrinet = (Petrinet) pnetAndM[0];
 
     new PnmlExportNetToPNML().exportPetriNetToPNMLFile(new FakePluginContext(), petrinet, new File("pnet.pnml"));
-
-    System.out.println("PNET" + petrinet);
 
     Marking markings = (Marking) pnetAndM[1];
 
