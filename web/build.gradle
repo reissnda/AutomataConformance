@@ -15,6 +15,7 @@ dependencies {
     implementation 'io.springfox:springfox-swagger2:3.0.0'
     implementation 'io.springfox:springfox-swagger-ui:3.0.0'
     implementation 'io.springfox:springfox-spring-webmvc:3.0.0'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
 
