@@ -1,6 +1,6 @@
 # AutomataConformance (align-web)
 
-##Build and run for production with Docker
+## Build and run for production with Docker
 
 ### Build codebase
 
@@ -28,7 +28,7 @@ Expected response:
 
 ```json
 {
-  status: "UP"
+  "status": "UP"
 }
 ```
 
