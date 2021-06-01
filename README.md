@@ -4,17 +4,23 @@
 
 ### Build codebase
 
+### Build inside Docker (recommended)
+
+`docker build -t align-web -f docker/build/Dockerfile .`
+
+### With gradle only (no Docker)
+
 At the project root, run:
 
 `gradle clean build -x test`
 
-### Build and run Docker image
+## Build and run Docker image
 
-At the project root, run:
+After running a gradle build, at the project root, run:
 
 `docker build -t align-web .`
 
-Run with Docker:
+### Run with Docker
 
 To expose the service on port 8091, run:
 
