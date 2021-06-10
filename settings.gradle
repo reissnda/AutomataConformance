@@ -2,3 +2,6 @@ rootProject.name = 'AutomataConformance'
 include 'automata-core'
 include 'cli'
 include 'web'
+include 'log-attr-filter'
+include 'client'
+

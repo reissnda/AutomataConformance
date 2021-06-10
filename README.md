@@ -6,7 +6,7 @@
 
 ### Build inside Docker (recommended)
 
-`docker build -t align-web -f docker/gradle/Dockerfile .`
+`docker build -t apromore/align-web:latest -f docker/gradle/Dockerfile .`
 
 ### With gradle only (no Docker)
 
