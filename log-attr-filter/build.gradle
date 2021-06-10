@@ -1,0 +1,22 @@
+plugins {
+    id 'java-library'
+    id 'java'
+}
+
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+
+dependencies {
+    api files('../Libraries/OpenXES-20160212.jar')
+    api files('../Libraries/OpenXES-XStream-20160212.jar')
+    api files('../Libraries/XESLite-6.9.338.jar')
+    implementation group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+    implementation group: 'eu.danieldk.dictomaton', name: 'dictomaton', version: '1.2.1'
+    implementation group: 'com.github.stephenc.high-scale-lib', name: 'high-scale-lib', version: '1.1.4'
+    implementation group: 'com.carrotsearch', name: 'java-sizeof', version: '0.0.5'
+}
