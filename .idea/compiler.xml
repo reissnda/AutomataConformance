@@ -10,6 +10,7 @@
         </processorPath>
         <module name="AutomataConformance.cli.main" />
         <module name="AutomataConformance.log-attr-filter.main" />
+        <module name="AutomataConformance.client.main" />
         <module name="AutomataConformance.automata-core.main" />
         <module name="AutomataConformance.web.main" />
       </profile>

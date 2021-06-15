@@ -1,4 +1,4 @@
-package org.apromore.alignment.web.config;
+package org.apromore.alignmentautomaton.api;
 
 public final class RESTEndpointsConfig {
 

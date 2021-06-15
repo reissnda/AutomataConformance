@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.UUID;
 import com.google.common.io.BaseEncoding;
 import io.swagger.annotations.ApiOperation;
-import lombok.Data;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apromore.alignment.web.config.RESTEndpointsConfig;
 import org.apromore.alignment.web.service.filestore.InputFileStoreService;
 import org.apromore.alignment.web.service.filestore.StoredFile;
+import org.apromore.alignmentautomaton.api.FileStoreResponse;
+import org.apromore.alignmentautomaton.api.RESTEndpointsConfig;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -68,13 +67,6 @@ public class FileStoreController {
     log.info("Storing {}", name);
     service.store(name, request.getBytes(StandardCharsets.UTF_8));
     return new FileStoreResponse(name);
-  }
-
-  @Data
-  static class FileStoreResponse {
-
-    @NonNull
-    private final String fileName;
   }
 
   public static String randomFileName() {

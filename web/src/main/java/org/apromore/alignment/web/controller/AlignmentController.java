@@ -3,7 +3,7 @@ package org.apromore.alignment.web.controller;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apromore.alignment.web.config.RESTEndpointsConfig;
+import org.apromore.alignmentautomaton.api.RESTEndpointsConfig;
 import org.apromore.alignment.web.service.alignment.AlignmentService;
 import org.apromore.alignmentautomaton.AlignmentResult;
 import org.springframework.web.bind.annotation.PostMapping;
