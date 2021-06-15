@@ -91,6 +91,21 @@ public class State {
 
   }
 
+  public State(State state){
+    this.id = state.id();
+    this.label = state.label();
+    this.isSource = state.isSource();
+    this.isFinal = state.isFinal();
+
+    this.incomingTransitions = new FastList<>();
+    for(var transition: state.incomingTransitions())
+      this.incomingTransitions.add(new Transition(transition));
+
+    this.outgoingTransitions = new FastList<>();
+    for(var transition: state.outgoingTransitions())
+      this.outgoingTransitions.add(new Transition(transition));
+  }
+
   public int id() {
     return this.id;
   }

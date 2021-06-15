@@ -166,6 +166,7 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
     this.preperationLog = logTime - start;
     logTime = System.currentTimeMillis();
     //System.out.println("FSM creation");
+
     modelAutomaton = new ImportProcessModel()
         .createFSMfromPetrinet(pnet, marking, logAutomaton.eventLabels(), logAutomaton.inverseEventLabels());
     long modelTime = System.currentTimeMillis();

@@ -7,6 +7,7 @@ import org.deckfour.xes.model.XLog;
 import org.processmining.framework.connections.ConnectionCannotBeObtained;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.bpmn.Bpmn;
 
 public class HybridAlignmentGenerator implements AlignmentGenerator {
 
@@ -21,5 +22,10 @@ public class HybridAlignmentGenerator implements AlignmentGenerator {
     } catch (ConnectionCannotBeObtained | IOException ex) {
       throw new AlignmentGenerationException("Internal error generating alignment, cause: " + ex.getMessage(), ex);
     }
+  }
+
+  @Override
+  public AlignmentResult computeAlignment(Bpmn bpmn, XLog xLog) {
+    return null;
   }
 }

@@ -32,7 +32,7 @@ public class Transition {
 
   private static int UNIQUE_ID = 0;
 
-  private final int id = UNIQUE_ID++;
+  private int id = UNIQUE_ID++;
 
   public boolean explore = false;
 
@@ -40,12 +40,26 @@ public class Transition {
 
   private final State target;
 
-  private final int eventID;
+  private int eventID;
 
   public Transition(State state, State state2, int eventID) {
     this.source = state;
     this.target = state2;
     this.eventID = eventID;
+  }
+
+  public Transition(Integer id, State state, State state2, int eventID) {
+    this.id = id;
+    this.source = state;
+    this.target = state2;
+    this.eventID = eventID;
+  }
+
+  public Transition(Transition transition) {
+    this.id = transition.id();
+    this.source = transition.source();
+    this.target = transition.target();
+    this.eventID = transition.eventID();
   }
 
   public State source() {
@@ -58,6 +72,10 @@ public class Transition {
 
   public int eventID() {
     return this.eventID;
+  }
+
+  public void setEventID(Integer id) {
+    this.eventID = id;
   }
 
   public int id() {
