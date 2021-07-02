@@ -42,6 +42,7 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetImpl;
 import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.bpmn.Bpmn;
 import org.processmining.plugins.petrinet.structuralanalysis.IncidenceMatrixFactory;
 import org.processmining.plugins.petrinet.structuralanalysis.invariants.PlaceInvariantCalculator;
 import org.processmining.plugins.petrinet.structuralanalysis.util.SelfLoopTransitionExtract;
@@ -189,6 +190,30 @@ public class DecomposingTRImporter extends ImportProcessModel {
     }
     decideTRrule();
 
+  }
+
+  public void importAndDecomposeModelAndLogForConformanceChecking(Bpmn bpmn, XLog xLog)
+      throws ConnectionCannotBeObtained {
+    this.xLog = xLog;
+
+//    if (parallel > 0) {
+//      doDecomposition = true;
+//    }
+    if (doDecomposition && false) { // branch disabled
+      // FIXME decompositions/parallelization not supported when converting directly from Bpmn to
+      // automaton without Petri net
+      //      decomposePetriNetIntoSComponentAutomata(pnet, initM);
+      //      decomposeLogIntoProjectedDafsa(xLog);
+      //      decideSCompRule();
+    } else {
+      // sequential
+    }
+
+    importer = new ImportEventLog();
+    dafsa = importer.createDAFSAfromLog(xLog);
+    avgReduction = importer.getReductionLength();
+    modelFSM = createFSMFromBPNM(bpmn, dafsa.eventLabels(), dafsa.inverseEventLabels());
+    decideTRrule();
   }
 
   private void decideTRrule() {

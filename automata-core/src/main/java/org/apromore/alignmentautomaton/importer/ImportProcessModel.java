@@ -569,8 +569,8 @@ public class ImportProcessModel {
     return createFSMFromBPNM(bpmn, eventLabelMapping, inverseEventLabelMapping);
   }
 
-  private Automaton createFSMFromBPNM(Bpmn bpmn, BiMap<Integer, String> eventLabelMapping,
-      BiMap<String, Integer> inverseEventLabelMapping) throws IOException {
+  public Automaton createFSMFromBPNM(Bpmn bpmn, BiMap<Integer, String> eventLabelMapping,
+      BiMap<String, Integer> inverseEventLabelMapping)  {
     BpmnSelectDiagramParameters parameters = new BpmnSelectDiagramParameters();
     @SuppressWarnings("unused")
     BpmnSelectDiagramDialog dialog = new BpmnSelectDiagramDialog(bpmn.getDiagrams(), parameters);
@@ -590,8 +590,7 @@ public class ImportProcessModel {
     return model;
   }
 
-  public Automaton convertReachabilityGraphToFSM(ReachabilityGraph rg, BiMap<Integer, String> eventLabels, BiMap<String, Integer> inverseEventLabelMapping) throws IOException
-  {
+  public Automaton convertReachabilityGraphToFSM(ReachabilityGraph rg, BiMap<Integer, String> eventLabels, BiMap<String, Integer> inverseEventLabelMapping) {
     LinkedHashMap<Integer, org.apromore.alignmentautomaton.automaton.State> originalStateMapping = new LinkedHashMap<>();
     LinkedHashMap<Integer, org.apromore.alignmentautomaton.automaton.Transition> originalTransitionMapping = new LinkedHashMap<>();
 

@@ -413,7 +413,7 @@ public class ImportEventLog {
     return createDAFSAfromLog(xLog);
   }
 
-  public Automaton createDAFSAfromLog(XLog xLog) throws IOException {
+  public Automaton createDAFSAfromLog(XLog xLog) {
     //long start = System.nanoTime();
     //tracesContained = new UnifiedMap<IntArrayList, Boolean>();
     caseTracesMapping = new UnifiedMap<>();
