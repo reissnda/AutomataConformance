@@ -27,7 +27,7 @@
   </appender>
 
   <logger name="org.springframework" level="WARN"/>
-  <logger name="org.apromore.alignment" level="INFO"/>
+  <logger name="org.apromore.alignment" level="DEBUG"/>
 
   <root level="INFO">
     <appender-ref ref="STDOUT"/>

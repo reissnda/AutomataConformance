@@ -2,9 +2,13 @@ package org.apromore.alignmentautomaton.ScalableConformanceChecker;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apromore.alignmentautomaton.importer.DecomposingTRImporter;
+import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
+import org.eclipse.collections.impl.map.mutable.UnifiedMap;
 import org.processmining.plugins.petrinet.replayresult.PNMatchInstancesRepResult;
+import org.processmining.plugins.replayer.replayresult.AllSyncReplayResult;
 
 @Slf4j
 public class HybridConformanceChecker {
@@ -12,6 +16,8 @@ public class HybridConformanceChecker {
   private final DecomposingTRImporter decompositions;
 
   private PNMatchInstancesRepResult alignmentResult;
+
+  public Map<IntArrayList, AllSyncReplayResult> traceAlignmentsMapping = new UnifiedMap<>();
 
   private int numThreads;
 
@@ -43,25 +49,27 @@ public class HybridConformanceChecker {
     }
     if (decompositions.applyTRRule && decompositions.applySCompRule) {
       System.out.println("Applying TR-SComp");
-      MTDecomposingTRConformanceChecker TRSComp = new MTDecomposingTRConformanceChecker(decompositions, numThreads);
-      this.alignmentResult = TRSComp.alignmentResult;
+      MTDecomposingTRConformanceChecker checker = new MTDecomposingTRConformanceChecker(decompositions, numThreads);
+      this.alignmentResult = checker.alignmentResult;
     } else if (decompositions.applyTRRule) {
       System.out.println("Applying TR");
       decompositions.prepareTR();
-      MultiThreadedTRConformanceChecker TR = new MultiThreadedTRConformanceChecker(decompositions.dafsa,
+      MultiThreadedTRConformanceChecker checker = new MultiThreadedTRConformanceChecker(decompositions.dafsa,
           decompositions.modelFSM, Integer.MAX_VALUE, numThreads);
-      this.alignmentResult = TR.resOneOptimal();
+      this.traceAlignmentsMapping = checker.traceAlignmentsMapping;
+      this.alignmentResult = checker.resOneOptimal();
     } else if (decompositions.applySCompRule) {
       System.out.println("Applying SComp ");
-      MultiThreadedDecomposedConformanceChecker SComp = new MultiThreadedDecomposedConformanceChecker(
+      MultiThreadedDecomposedConformanceChecker checker = new MultiThreadedDecomposedConformanceChecker(
           decompositions.prepareSComp(), numThreads);
-      this.alignmentResult = SComp.alignmentResult;
+      this.alignmentResult = checker.alignmentResult;
     } else {
       System.out.println("Applying Automata Conformance");
-      decompositions.prepareAutomata();
-      MultiThreadedConformanceChecker Automata = new MultiThreadedConformanceChecker(decompositions.dafsa,
+//      decompositions.prepareAutomata();
+      MultiThreadedConformanceChecker checker = new MultiThreadedConformanceChecker(decompositions.dafsa,
           decompositions.modelFSM, Integer.MAX_VALUE, numThreads);
-      this.alignmentResult = Automata.resOneOptimal;
+      this.traceAlignmentsMapping = checker.traceAlignmentsMapping;
+      this.alignmentResult = checker.resOneOptimal;
     }
     //System.out.println(alignmentResult.getInfo());
   }
@@ -76,24 +84,26 @@ public class HybridConformanceChecker {
     }
     if (decompositions.applyTRRule && decompositions.applySCompRule) {
       System.out.println("Applying TR-SComp");
-      DecomposingTRConformanceChecker TRSComp = new DecomposingTRConformanceChecker(decompositions);
-      this.alignmentResult = TRSComp.alignmentResult;
+      DecomposingTRConformanceChecker checker = new DecomposingTRConformanceChecker(decompositions);
+      this.alignmentResult = checker.alignmentResult;
     } else if (decompositions.applyTRRule) {
       log.info("Applying TR");
       decompositions.prepareTR();
-      TRConformanceChecker TR = new TRConformanceChecker(decompositions.dafsa, decompositions.modelFSM,
+      TRConformanceChecker checker = new TRConformanceChecker(decompositions.dafsa, decompositions.modelFSM,
           Integer.MAX_VALUE);
-      this.alignmentResult = TR.resOneOptimal();
+      this.traceAlignmentsMapping = checker.traceAlignmentsMapping;
+      this.alignmentResult = checker.resOneOptimal();
     } else if (decompositions.applySCompRule) {
       log.info("Applying SComp ");
       DecomposingConformanceChecker SComp = new DecomposingConformanceChecker(decompositions.prepareSComp());
       this.alignmentResult = SComp.alignmentResult;
     } else {
       log.info("Applying Automata Conformance");
-      decompositions.prepareAutomata();
-      ScalableConformanceChecker Automata = new ScalableConformanceChecker(decompositions.dafsa,
+//      decompositions.prepareAutomata();
+      ScalableConformanceChecker checker = new ScalableConformanceChecker(decompositions.dafsa,
           decompositions.modelFSM, Integer.MAX_VALUE);
-      this.alignmentResult = Automata.resOneOptimal();
+      this.traceAlignmentsMapping = checker.traceAlignmentsMapping;
+      this.alignmentResult = checker.resOneOptimal();
     }
   }
 

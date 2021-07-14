@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.bpmn.Bpmn;
+import org.processmining.plugins.bpmn.plugins.BpmnImportPlugin;
 import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
 
 class HybridAlignmentGeneratorTest {
@@ -23,33 +25,38 @@ class HybridAlignmentGeneratorTest {
 
   @Test
   void computeAlignment12() throws Exception {
-    runTest("BPIC12.xes.gz", "BPIC12IM.pnml", "build/al-res12.json");
+    runTestPNML("BPIC12.xes.gz", "BPIC12IM.pnml", "build/al-res12.json");
   }
 
   @Test
   @Disabled
   void computeAlignment17() throws Exception {
-    runTest("BPIC17F.xes.gz", "BPIC17F_IM.pnml", "build/al-res17.json");
+    runTestPNML("BPIC17F.xes.gz", "BPIC17F_IM.pnml", "build/al-res17.json");
   }
 
+
   @Test
-  @Disabled
-  void computeAlignmentHospitalBilling() throws Exception {
-    runTest("Hospital_Billing.xes.gz", "Hospital_Billing.bpmn", "build/hb.json");
+  void computeAlignmentHospitalBillingBPMN() throws Exception {
+    runTestBPNM("Hospital_Billing.xes.gz", "Hospital_Billing.bpmn", "build/hb.json");
   }
 
   @Test
   @Disabled
   void loan() throws Exception {
-    runTest("loan.xes.gz", "loan.bpmn", "build/loan.json");
+    runTestPNML("loan.xes.gz", "loan.bpmn", "build/loan.json");
   }
 
   @Test
   void simple() throws Exception {
-    runTest("simple.xes", "simple.bpmn", "build/simple.json");
+    runTestPNML("simple.xes", "simple.bpmn", "build/simple.json");
   }
 
-  private void runTest(final String xesF, final String modelF, String output) throws Exception {
+  @Test
+  void simpleBPNM() throws Exception {
+    runTestBPNM("simple.xes", "simple.bpmn", "build/simple.json");
+  }
+
+  private void runTestPNML(final String xesF, final String modelF, String output) throws Exception {
     File xes = new File(Resources.getResource("fixtures/" + xesF).getFile());
     File modelFile = new File(Resources.getResource("fixtures/" + modelF).getFile());
 
@@ -65,6 +72,21 @@ class HybridAlignmentGeneratorTest {
     Marking markings = (Marking) pnetAndM[1];
 
     AlignmentResult alignmentResult = new HybridAlignmentGenerator().computeAlignment(petrinet, markings, xLog);
+
+    try (BufferedWriter w = new BufferedWriter(new FileWriter(output))) {
+      mapper.writeValue(w, alignmentResult);
+    }
+  }
+
+  private void runTestBPNM(final String xesF, final String modelF, String output) throws Exception {
+    File xes = new File(Resources.getResource("fixtures/" + xesF).getFile());
+    File modelFile = new File(Resources.getResource("fixtures/" + modelF).getFile());
+
+    XLog xLog = new ImportEventLog().importEventLog(xes);
+
+    Bpmn bpmn = (Bpmn) new BpmnImportPlugin().importFile(new FakePluginContext(), modelFile);
+
+    AlignmentResult alignmentResult = new HybridAlignmentGenerator().computeAlignment(bpmn, xLog);
 
     try (BufferedWriter w = new BufferedWriter(new FileWriter(output))) {
       mapper.writeValue(w, alignmentResult);

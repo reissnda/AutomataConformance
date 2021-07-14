@@ -1,4 +1,4 @@
-package org.apromore.alignmentautomaton.volo;
+package org.apromore.alignmentautomaton.postprocessor;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,8 +19,11 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apromore.alignmentautomaton.ScalableConformanceChecker.NodeComparator;
 import org.apromore.alignmentautomaton.ScalableConformanceChecker.ReducedResult;
 import org.apromore.alignmentautomaton.automaton.Automaton;
+import org.apromore.alignmentautomaton.automaton.State;
 import org.apromore.alignmentautomaton.automaton.Transition;
 import org.apromore.alignmentautomaton.importer.ImportEventLog;
+import org.apromore.alignmentautomaton.importer.ImportProcessModel;
+import org.apromore.alignmentautomaton.psp.Arc;
 import org.apromore.alignmentautomaton.psp.Configuration;
 import org.apromore.alignmentautomaton.psp.Node;
 import org.apromore.alignmentautomaton.psp.PSP;
@@ -124,8 +127,8 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 		//System.out.println(logAutomaton.eventLabels());
 		this.modelAutomaton = modelAutomaton;
 		//System.out.println(modelAutomaton.eventLabels());
-		Node source = new Node(logAutomaton.source(), modelAutomaton.source(), 
-				new Configuration(new IntArrayList(), new IntIntHashMap(), new IntArrayList(), new IntIntHashMap(), new FastList<au.qut.apromore.psp.Synchronization>(),
+		Node source = new Node(logAutomaton.source(), modelAutomaton.source(),
+				new Configuration(new IntArrayList(), new IntIntHashMap(), new IntArrayList(), new IntIntHashMap(), new FastList<Synchronization>(),
 						new IntArrayList(), new IntArrayList()), 0);
 		source.configuration().logIDs().add(logAutomaton.sourceID()); source.configuration().modelIDs().add(modelAutomaton.sourceID());
 		psp = new PSP(HashBiMap.create(), new UnifiedSet<Arc>(), source.hashCode(), logAutomaton, modelAutomaton);
@@ -152,7 +155,7 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 		if(toDot)
 			modelAutomaton.toDot(model.substring(0, model.indexOf(".")) + "_taulessRG.dot");
 		Node source = new Node(logAutomaton.source(), modelAutomaton.source(), 
-				new Configuration(new IntArrayList(), new IntIntHashMap(), new IntArrayList(), new IntIntHashMap(), new FastList<au.qut.apromore.psp.Synchronization>(),
+				new Configuration(new IntArrayList(), new IntIntHashMap(), new IntArrayList(), new IntIntHashMap(), new FastList<Synchronization>(),
 						new IntArrayList(), new IntArrayList()), 0);
 		source.configuration().logIDs().add(logAutomaton.sourceID()); source.configuration().modelIDs().add(modelAutomaton.sourceID());
 		psp = new PSP(HashBiMap.create(), new UnifiedSet<Arc>(), source.hashCode(), logAutomaton, modelAutomaton);
@@ -987,7 +990,7 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 			//potentialConfiguration.moveMatching().add(new Couple<Integer, Integer>(tlog.eventID(), tmodel.eventID()));
 			//potentialConfiguration.setMoveOnLog().addToValue(tlog.eventID(), 1);
 			//potentialConfiguration.setMoveOnModel().addToValue(tmodel.eventID(), 1);
-			potentialConfiguration.sequenceSynchronizations().add(new au.qut.apromore.psp.Synchronization(Configuration.Operation.MATCH, tlog.eventID(), tmodel.eventID(), tlog.target().id(), tmodel.target().id(), currentNode.hashCode()));
+			potentialConfiguration.sequenceSynchronizations().add(new Synchronization(Configuration.Operation.MATCH, tlog.eventID(), tmodel.eventID(), tlog.target().id(), tmodel.target().id(), currentNode.hashCode()));
 			//potentialConfiguration.logIDs().add(tlog.target().id());
 			//potentialConfiguration.modelIDs().add(tmodel.target().id());
 			if(insertToPSP)
@@ -1002,7 +1005,7 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 			//potentialConfiguration.moveOnLog().add(tlog.eventID());
 			//potentialConfiguration.setMoveOnLog().addToValue(tlog.eventID(), 1);
 			//potentialConfiguration.adjustSetMoveOnLog();
-			potentialConfiguration.sequenceSynchronizations().add(new au.qut.apromore.psp.Synchronization(Configuration.Operation.LHIDE, tlog.eventID(), -1, tlog.target().id(), -1, currentNode.hashCode()));
+			potentialConfiguration.sequenceSynchronizations().add(new Synchronization(Configuration.Operation.LHIDE, tlog.eventID(), -1, tlog.target().id(), -1, currentNode.hashCode()));
 			//potentialConfiguration.logIDs().add(tlog.target().id());
 			if(insertToPSP)
 				potentialNode = new Node(tlog.target(), currentNode.stModel(), potentialConfiguration, currentNode.tracePosition + 1, currentNode.weight()+1);
@@ -1015,7 +1018,7 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 			//potentialConfiguration.moveOnModel().add(tmodel.eventID());
 			//potentialConfiguration.setMoveOnModel().addToValue(tmodel.eventID(), 1);
 			//potentialConfiguration.adjustSetMoveOnModel();
-			potentialConfiguration.sequenceSynchronizations().add(new au.qut.apromore.psp.Synchronization(Configuration.Operation.RHIDE, -1, tmodel.eventID(), -1, tmodel.target().id(), currentNode.hashCode()));
+			potentialConfiguration.sequenceSynchronizations().add(new Synchronization(Configuration.Operation.RHIDE, -1, tmodel.eventID(), -1, tmodel.target().id(), currentNode.hashCode()));
 			//potentialConfiguration.modelIDs().add(tmodel.target().id());
 			if(insertToPSP)
 				potentialNode = new Node(currentNode.stLog(), tmodel.target(), potentialConfiguration, currentNode.tracePosition,currentNode.weight()+1);
@@ -1035,11 +1038,11 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 			psp.nodes().put(potentialNode.hashCode(), potentialNode);
 
 			if(operation == Configuration.Operation.RHIDE)
-				potentialArc = new Arc(new au.qut.apromore.psp.Synchronization(Configuration.Operation.RHIDE, -1, tmodel.eventID(), -1, tmodel.target().id(), currentNode.hashCode()), currentNode, potentialNode);
+				potentialArc = new Arc(new Synchronization(Configuration.Operation.RHIDE, -1, tmodel.eventID(), -1, tmodel.target().id(), currentNode.hashCode()), currentNode, potentialNode);
 			else if(operation==Configuration.Operation.LHIDE)
-				potentialArc = new Arc(new au.qut.apromore.psp.Synchronization(operation, tlog.eventID(), -1, tlog.target().id(),-1, currentNode.hashCode()), currentNode, potentialNode);
+				potentialArc = new Arc(new Synchronization(operation, tlog.eventID(), -1, tlog.target().id(),-1, currentNode.hashCode()), currentNode, potentialNode);
 			else
-				potentialArc = new Arc(new au.qut.apromore.psp.Synchronization(operation, tlog.eventID(), tmodel.eventID(), tlog.target().id(),tmodel.target().id(), currentNode.hashCode()), currentNode, potentialNode);
+				potentialArc = new Arc(new Synchronization(operation, tlog.eventID(), tmodel.eventID(), tlog.target().id(),tmodel.target().id(), currentNode.hashCode()), currentNode, potentialNode);
 			if(currentNode.outgoingArcs().add(potentialArc))
 				psp.arcs().add(potentialArc);
 		}*/
