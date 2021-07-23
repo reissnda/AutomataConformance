@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -80,9 +81,13 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 		}
 	}*/
 
+  private HashMap<String, String> idsMapping = new HashMap<>();
+
   private Automaton logAutomaton;
 
   private Automaton modelAutomaton;
+
+  private Automaton originalModelAutomaton;
 
   private PSP psp;
 
@@ -201,8 +206,12 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
     this.preperationLog = logTime - start;
     logTime = System.currentTimeMillis();
     //System.out.println("FSM creation");
-    modelAutomaton = new ImportProcessModel()
-        .createAutomatonFromPNMLorBPMNFile(path + model, logAutomaton.eventLabels(), logAutomaton.inverseEventLabels());
+
+    var ipm = new ImportProcessModel();
+    modelAutomaton = ipm.createAutomatonFromPNMLorBPMNFile(path + model,logAutomaton.eventLabels(), logAutomaton.inverseEventLabels());
+    originalModelAutomaton = ipm.originalModelAutomaton;
+    idsMapping = ipm.idsMapping;
+
     long modelTime = System.currentTimeMillis();
     psp = new PSP(logAutomaton, modelAutomaton);
     this.preperationModel = modelTime - logTime;
@@ -1615,4 +1624,10 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
     pw1.close();
     pw2.close();
   }
+
+  public Automaton getOriginalModelAutomaton() { return originalModelAutomaton; }
+
+  public Automaton getModelAutomaton() { return modelAutomaton; }
+
+  public HashMap<String, String> getIdsMapping() { return idsMapping; }
 }
