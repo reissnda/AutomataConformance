@@ -93,6 +93,8 @@ dependencies {
     api files('../Libraries/slickerbox1-6.5.jar')
     api files('../Libraries/tablelayout.jar')
 
+    api files('../Libraries/prom-bpmn-osgi-1.0.jar')
+    api files('../Libraries/prom-models-osgi-1.0.jar')
 }
 
 test {

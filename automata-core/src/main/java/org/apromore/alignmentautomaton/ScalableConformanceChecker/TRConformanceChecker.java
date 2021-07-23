@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -77,9 +78,13 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
         }
     }*/
 
+  private HashMap<String, String> idsMapping = new HashMap<>();
+
   private Automaton logAutomaton;
 
-  private final Automaton modelAutomaton;
+  private Automaton modelAutomaton;
+
+  private Automaton originalModelAutomaton;
 
   private final PSP psp;
 
@@ -128,9 +133,10 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
     this.logAutomaton = new ImportEventLog().convertLogToAutomatonWithTRFrom(path + "/" + log);
     System.out.println(logAutomaton.eventLabels());
     //this.modelAutomaton = new ImportProcessModel().createFSMfromBPNMFileWithConversion(path + model, logAutomaton.eventLabels(), logAutomaton.inverseEventLabels()); //createFSMfromPNMLFile(path + "/" + model,logAutomaton.eventLabels(), logAutomaton.inverseEventLabels());
-    this.modelAutomaton = new ImportProcessModel()
-        .createAutomatonFromPNMLorBPMNFile(path + "/" + model, logAutomaton.eventLabels(),
-            logAutomaton.inverseEventLabels());
+    var ipm = new ImportProcessModel();
+    modelAutomaton = ipm.createAutomatonFromPNMLorBPMNFile(path + model,logAutomaton.eventLabels(), logAutomaton.inverseEventLabels());
+    originalModelAutomaton = ipm.originalModelAutomaton;
+    idsMapping = ipm.idsMapping;
     System.out.println(modelAutomaton.eventLabels());
     psp = new PSP(logAutomaton, modelAutomaton);
     calculateOneOptimalAlignmentsWithTRreductionAndTraceEquivalence(stateLimit);
@@ -2680,4 +2686,10 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
     pw1.close();
     pw2.close();
   }
+
+  public Automaton getOriginalModelAutomaton() { return originalModelAutomaton; }
+
+  public Automaton getModelAutomaton() { return modelAutomaton; }
+
+  public HashMap<String, String> getIdsMapping() { return idsMapping; }
 }

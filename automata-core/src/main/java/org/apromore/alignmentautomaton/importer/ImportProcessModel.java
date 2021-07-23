@@ -1,6 +1,7 @@
 package org.apromore.alignmentautomaton.importer;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,6 +19,9 @@ import com.google.common.collect.HashBiMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apromore.alignmentautomaton.PetriNet.PetriNet;
 import org.apromore.alignmentautomaton.automaton.Automaton;
+import org.apromore.processmining.models.graphbased.directed.bpmn.elements.Activity;
+import org.apromore.processmining.models.graphbased.directed.bpmn.elements.Event;
+import org.apromore.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
@@ -80,7 +84,11 @@ public class ImportProcessModel {
 
   private BiMap<String, Integer> stateLabelMapping;
 
-  public Automaton model;
+  public Automaton modelAutomaton;
+
+  public Automaton originalModelAutomaton;
+
+  public HashMap<String, String> idsMapping = new HashMap<>();
 
   public BiMap<Integer, String> globalLabelMapping = HashBiMap.create();
 
@@ -135,8 +143,6 @@ public class ImportProcessModel {
   public int rg_size = 0;
 
   public int rg_size_before_tau_removal = 0;
-
-  public Automaton originalModel;
 
   public Automaton createAutomatonAlternative(String fileName) throws Exception {
     PetriNet pNet = ImportPetriNet.createPetriNetFromFile(fileName);
@@ -230,13 +236,13 @@ public class ImportProcessModel {
     this.inverseEventLabelMapping = this.eventLabelMapping.inverse();
     this.rg_size_before_tau_removal = this.stateMapping.size() + this.transitionMapping.size();
     this.removeTauArcs();
-    model = new Automaton(this.stateMapping, this.eventLabelMapping, this.inverseEventLabelMapping,
+    modelAutomaton = new Automaton(this.stateMapping, this.eventLabelMapping, this.inverseEventLabelMapping,
         this.transitionMapping, iSource, this.finalStates,
         skipEvent);//, globalInverseLabels.inverse());//, ImportPetriNet.readFile());
-    this.rg_nodes = model.numberNodes;
-    this.rg_arcs = model.numberArcs;
-    this.rg_size = model.totalSize;
-    return model;
+    this.rg_nodes = modelAutomaton.numberNodes;
+    this.rg_arcs = modelAutomaton.numberArcs;
+    this.rg_size = modelAutomaton.totalSize;
+    return modelAutomaton;
   }
 
   public Automaton createAutomatonFromPNMLorBPMNFile(String fileName, BiMap<Integer, String> eventLabelMapping,
@@ -245,7 +251,7 @@ public class ImportProcessModel {
     if (extension.equals(".pnml")) {
       return createFSMfromPNMLFile(fileName, eventLabelMapping, inverseEventLabelMapping);
     } else if (extension.equals(".bpmn")) {
-      return createFSMfromBPNMFileWithConversion(fileName, eventLabelMapping, inverseEventLabelMapping);
+      return createFSMfromBPMNFile(fileName, eventLabelMapping, inverseEventLabelMapping);
     } else {
       throw new IOException("Wrong filetype - Only .pnml or .bpmn process models are supported");
     }
@@ -341,17 +347,17 @@ public class ImportProcessModel {
       System.exit(1);
     }
     ReachabilityGraph pnet_rg = (ReachabilityGraph) object[0];
-    model = convertReachabilityGraphToFSM(pnet, pnet_rg, eventLabelMapping, inverseEventLabelMapping);
+    modelAutomaton = convertReachabilityGraphToFSM(pnet, pnet_rg, eventLabelMapping, inverseEventLabelMapping);
     for (String tLabel : pLabels) {
       if (!(tLabel.contains(cTau) || tLabel.contains(tau) || tLabel.contains(invisible) || tLabel.contains(empty)
           || tLabel.equals(emptyStr) || tLabel.matches(strRegEx))) {
         parallelLabels.add(globalInverseLabels.get(tLabel));
       }
     }
-    model.setParallelLabels(parallelLabels);
+    modelAutomaton.setParallelLabels(parallelLabels);
     //long modelTime = System.nanoTime();
     //System.out.println("Model automaton creation: " + TimeUnit.MILLISECONDS.convert((modelTime - start), TimeUnit.NANOSECONDS) + "ms");
-    return model;
+    return modelAutomaton;
   }
 
   public Automaton createFSMfromPNMLFile(String fileName, BiMap<Integer, String> eventLabelMapping,
@@ -361,10 +367,10 @@ public class ImportProcessModel {
     Petrinet pnet = (Petrinet) object[0];
     Marking marking = (Marking) object[1];
     long start = System.nanoTime();
-    model = createFSMfromPetrinet(pnet, marking, eventLabelMapping, inverseEventLabelMapping);
+    modelAutomaton = createFSMfromPetrinet(pnet, marking, eventLabelMapping, inverseEventLabelMapping);
     long modelTime = System.nanoTime();
     //System.out.println("Model automaton creation: " + TimeUnit.MILLISECONDS.convert((modelTime - start), TimeUnit.NANOSECONDS) + "ms");
-    return model;
+    return modelAutomaton;
   }
 
   public void transformAndExportPetriNetFromBPMNFile(String fileName, String exportFileName) throws Exception {
@@ -428,11 +434,11 @@ public class ImportProcessModel {
     object = new TSGenerator().calculateTS(context, pnet, initialMarking);
     ReachabilityGraph pnet_rg = (ReachabilityGraph) object[0];
     //new TsmlExportTS().export(context, pnet_rg, new File(fileName + ".tsml"));
-    model = convertReachabilityGraphToFSM(pnet, pnet_rg, eventLabelMapping, inverseEventLabelMapping);
+    modelAutomaton = convertReachabilityGraphToFSM(pnet, pnet_rg, eventLabelMapping, inverseEventLabelMapping);
     long modelTime = System.nanoTime();
     System.out.println(
         "Model automaton creation: " + TimeUnit.MILLISECONDS.convert((modelTime - start), TimeUnit.NANOSECONDS) + "ms");
-    return model;
+    return modelAutomaton;
   }
 
   public Automaton convertReachabilityGraphToFSM(Petrinet pnet, ReachabilityGraph pnet_rg,
@@ -550,53 +556,41 @@ public class ImportProcessModel {
     this.inverseEventLabelMapping = this.eventLabelMapping.inverse();
     this.rg_size_before_tau_removal = this.stateMapping.size() + this.transitionMapping.size();
     this.removeTauArcs();
-    model = new Automaton(this.stateMapping, this.eventLabelMapping, this.inverseEventLabelMapping,
+    modelAutomaton = new Automaton(this.stateMapping, this.eventLabelMapping, this.inverseEventLabelMapping,
         this.transitionMapping, iSource, this.finalStates,
         skipEvent);//, globalInverseLabels.inverse());//, ImportPetriNet.readFile());
-    this.rg_nodes = model.numberNodes;
-    this.rg_arcs = model.numberArcs;
-    this.rg_size = model.totalSize;
-    return model;
+    this.rg_nodes = modelAutomaton.numberNodes;
+    this.rg_arcs = modelAutomaton.numberArcs;
+    this.rg_size = modelAutomaton.totalSize;
+    return modelAutomaton;
   }
 
   // Volodymyr's code
 
   public Automaton createFSMfromBPMNFile(String fileName, BiMap<Integer, String> eventLabelMapping,
       BiMap<String, Integer> inverseEventLabelMapping) throws Exception {
-    Bpmn bpmn = (Bpmn) new BpmnImportPlugin().importFile(context, fileName);
-    return createFSMFromBPNM(bpmn, eventLabelMapping, inverseEventLabelMapping);
+    org.apromore.processmining.models.graphbased.directed.bpmn.BPMNDiagram diagram = new org.apromore.processmining.plugins.bpmn.plugins.BpmnImportPlugin().importFromStreamToDiagram(new FileInputStream(new File(fileName)), fileName);
+    return createFSMFromBPNM(diagram, eventLabelMapping, inverseEventLabelMapping);
   }
 
-  public Automaton createFSMFromBPNM(Bpmn bpmn, BiMap<Integer, String> eventLabelMapping,
-      BiMap<String, Integer> inverseEventLabelMapping) {
-    BpmnSelectDiagramParameters parameters = new BpmnSelectDiagramParameters();
-    @SuppressWarnings("unused") BpmnSelectDiagramDialog dialog = new BpmnSelectDiagramDialog(bpmn.getDiagrams(),
-        parameters);
-    BPMNDiagram newDiagram = BPMNDiagramFactory.newBPMNDiagram("");
-    Map<String, BPMNNode> id2node = new HashMap<>();
-    Map<String, Swimlane> id2lane = new HashMap<>();
-    if (parameters.getDiagram() == BpmnSelectDiagramParameters.NODIAGRAM) {
-      bpmn.unmarshall(newDiagram, id2node, id2lane);
-    } else {
-      Collection<String> elements = parameters.getDiagram().getElements();
-      bpmn.unmarshall(newDiagram, elements, id2node, id2lane);
-    }
-
-    Map<BPMNNode, String> id2nodeInversed = new HashMap<>();
-    for (Map.Entry<String, BPMNNode> entry : id2node.entrySet()) {
-      if (!entry.getKey().toLowerCase().startsWith("flow") && !entry.getKey().toLowerCase().startsWith("edge")) {
-        id2nodeInversed.put(entry.getValue(), entry.getKey());
-      }
-    }
-
-    for (var event : newDiagram.getEvents()) {
-      event.getAttributeMap().put("Original id", id2nodeInversed.get(event));
-    }
-
+  public Automaton createFSMFromBPNM(org.apromore.processmining.models.graphbased.directed.bpmn.BPMNDiagram diagram,
+      BiMap<Integer, String> eventLabelMapping, BiMap<String, Integer> inverseEventLabelMapping) {
     BPMNtoTSConverter bpmnToFSMConverter = new BPMNtoTSConverter();
-    ReachabilityGraph rg = bpmnToFSMConverter.BPMNtoTS(newDiagram);
-    model = convertReachabilityGraphToFSM(rg, eventLabelMapping, inverseEventLabelMapping);
-    return model;
+    ReachabilityGraph rg = bpmnToFSMConverter.BPMNtoTS(diagram);
+    idsMapping = getIdsMapping(diagram);
+    modelAutomaton = convertReachabilityGraphToFSM(rg, eventLabelMapping, inverseEventLabelMapping);
+    return modelAutomaton;
+  }
+
+  private HashMap<String, String> getIdsMapping(org.apromore.processmining.models.graphbased.directed.bpmn.BPMNDiagram diagram){
+    HashMap<String, String> idsMapping = new HashMap<>();
+
+    for(var node: diagram.getNodes().stream().filter(node -> node instanceof Event ||
+        node instanceof Activity || node instanceof Gateway).collect(Collectors.toList())){
+      idsMapping.put(node.getLabel(), node.getAttributeMap().get("Original id").toString());
+    }
+
+    return idsMapping;
   }
 
   public Automaton convertReachabilityGraphToFSM(ReachabilityGraph rg, BiMap<Integer, String> eventLabels,
@@ -725,7 +719,7 @@ public class ImportProcessModel {
 
     IntHashSet originalFinalStates = new IntHashSet(this.finalStates);
 
-    originalModel = new Automaton(originalStateMapping, HashBiMap.create(originalEventLabelMapping),
+    originalModelAutomaton = new Automaton(originalStateMapping, HashBiMap.create(originalEventLabelMapping),
         HashBiMap.create(originalInverseEventLabelMapping), originalTransitionMapping, iSource, originalFinalStates,
         skipEvent);
 
@@ -747,13 +741,13 @@ public class ImportProcessModel {
     }
 
     this.removeTauArcs();
-    model = new org.apromore.alignmentautomaton.automaton.Automaton(this.stateMapping, this.eventLabelMapping,
+    modelAutomaton = new org.apromore.alignmentautomaton.automaton.Automaton(this.stateMapping, this.eventLabelMapping,
         this.inverseEventLabelMapping, this.transitionMapping, iSource, this.finalStates,
         skipEvent);//, globalInverseLabels.inverse());//, ImportPetriNet.readFile());
-    this.rg_nodes = model.numberNodes;
-    this.rg_arcs = model.numberArcs;
-    this.rg_size = model.totalSize;
-    return model;
+    this.rg_nodes = modelAutomaton.numberNodes;
+    this.rg_arcs = modelAutomaton.numberArcs;
+    this.rg_size = modelAutomaton.totalSize;
+    return modelAutomaton;
   }
 
   // END Volodymyr
