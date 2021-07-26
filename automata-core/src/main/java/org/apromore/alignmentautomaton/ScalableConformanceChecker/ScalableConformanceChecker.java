@@ -27,6 +27,7 @@ import org.apromore.alignmentautomaton.psp.Configuration;
 import org.apromore.alignmentautomaton.psp.Node;
 import org.apromore.alignmentautomaton.psp.PSP;
 import org.apromore.alignmentautomaton.psp.Synchronization;
+import org.apromore.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.deckfour.xes.model.XLog;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.list.mutable.FastList;
@@ -132,6 +133,15 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
   public ScalableConformanceChecker(Automaton logAutomaton, Automaton modelAutomaton) {
     this.logAutomaton = logAutomaton;
     this.modelAutomaton = modelAutomaton;
+    this.psp = new PSP(logAutomaton, modelAutomaton);
+  }
+
+  public ScalableConformanceChecker(BPMNDiagram diagram, XLog xLog){
+    this.logAutomaton = new ImportEventLog().createDAFSAfromLog(xLog);;
+    var ipm = new ImportProcessModel();
+    this.modelAutomaton = ipm.createFSMFromBPNM(diagram, logAutomaton.eventLabels(), logAutomaton.inverseEventLabels());
+    this.originalModelAutomaton = ipm.originalModelAutomaton;
+    this.idsMapping = ipm.idsMapping;
     this.psp = new PSP(logAutomaton, modelAutomaton);
   }
 
