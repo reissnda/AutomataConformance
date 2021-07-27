@@ -2,6 +2,7 @@ package org.apromore.alignmentautomaton;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import au.edu.qut.context.FakePluginContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,13 +10,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.io.Resources;
 import org.apromore.alignmentautomaton.importer.ImportEventLog;
 import org.apromore.alignmentautomaton.importer.ImportProcessModel;
+import org.apromore.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
+import org.apromore.processmining.plugins.bpmn.plugins.BpmnImportPlugin;
 import org.deckfour.xes.model.XLog;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.bpmn.Bpmn;
-import org.processmining.plugins.bpmn.plugins.BpmnImportPlugin;
 import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
 
 class HybridAlignmentGeneratorTest {
@@ -34,7 +35,6 @@ class HybridAlignmentGeneratorTest {
     runTestPNML("BPIC17F.xes.gz", "BPIC17F_IM.pnml", "build/al-res17.json");
   }
 
-
   @Test
   void computeAlignmentHospitalBillingBPMN() throws Exception {
     runTestBPNM("Hospital_Billing.xes.gz", "Hospital_Billing.bpmn", "build/hb.json");
@@ -44,11 +44,6 @@ class HybridAlignmentGeneratorTest {
   @Disabled
   void loan() throws Exception {
     runTestPNML("loan.xes.gz", "loan.bpmn", "build/loan.json");
-  }
-
-  @Test
-  void simple() throws Exception {
-    runTestPNML("simple.xes", "simple.bpmn", "build/simple.json");
   }
 
   @Test
@@ -84,8 +79,7 @@ class HybridAlignmentGeneratorTest {
 
     XLog xLog = new ImportEventLog().importEventLog(xes);
 
-    Bpmn bpmn = (Bpmn) new BpmnImportPlugin().importFile(new FakePluginContext(), modelFile);
-
+    BPMNDiagram bpmn = new BpmnImportPlugin().importFromStreamToDiagram(new FileInputStream(modelFile), modelF);
     AlignmentResult alignmentResult = new HybridAlignmentGenerator().computeAlignment(bpmn, xLog);
 
     try (BufferedWriter w = new BufferedWriter(new FileWriter(output))) {

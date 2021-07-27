@@ -212,7 +212,8 @@ public class DecomposingTRImporter extends ImportProcessModel {
     importer = new ImportEventLog();
     dafsa = importer.createDAFSAfromLog(xLog);
     avgReduction = importer.getReductionLength();
-    modelFSM = createFSMFromBPNM(bpmn, dafsa.eventLabels(), dafsa.inverseEventLabels());
+    // FIXME change Bpmn to BPMNDiagram and uncomment the line below
+//    modelFSM = createFSMFromBPNM(bpmn, dafsa.eventLabels(), dafsa.inverseEventLabels());
     decideTRrule();
   }
 

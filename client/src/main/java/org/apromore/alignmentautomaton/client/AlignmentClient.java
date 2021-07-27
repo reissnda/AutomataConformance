@@ -6,10 +6,10 @@ import org.apromore.alignmentautomaton.AlignmentGenerator;
 import org.apromore.alignmentautomaton.AlignmentResult;
 import org.apromore.alignmentautomaton.api.FileStoreResponse;
 import org.apromore.alignmentautomaton.api.RESTEndpointsConfig;
+import org.apromore.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.deckfour.xes.model.XLog;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.bpmn.Bpmn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -34,7 +34,7 @@ public class AlignmentClient implements AlignmentGenerator {
   }
 
   @Override
-  public AlignmentResult computeAlignment(Bpmn bpmn, XLog xLog) {
+  public AlignmentResult computeAlignment(BPMNDiagram bpmn, XLog xLog) {
 
     String modelName = UUID.randomUUID().toString();
     String logName = UUID.randomUUID().toString();
