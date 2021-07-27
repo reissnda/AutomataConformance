@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
-import au.edu.qut.context.FakePluginContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.io.Resources;
@@ -17,7 +16,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
 
 class HybridAlignmentGeneratorTest {
 
@@ -61,9 +59,6 @@ class HybridAlignmentGeneratorTest {
         modelF.trim().toLowerCase().endsWith(".bpmn") ? importProcessModel.importPetrinetFromBPMN(modelFile)
             : importProcessModel.importPetriNetAndMarking(modelFile);
     Petrinet petrinet = (Petrinet) pnetAndM[0];
-
-    new PnmlExportNetToPNML().exportPetriNetToPNMLFile(new FakePluginContext(), petrinet, new File("pnet.pnml"));
-
     Marking markings = (Marking) pnetAndM[1];
 
     AlignmentResult alignmentResult = new HybridAlignmentGenerator().computeAlignment(petrinet, markings, xLog);
