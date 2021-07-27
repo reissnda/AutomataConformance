@@ -4,13 +4,19 @@ plugins {
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 }
 
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
 
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
 }
-
 
 dependencies {
     api files('../Libraries/OpenXES-20160212.jar')
