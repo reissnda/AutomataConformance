@@ -1,0 +1,59 @@
+plugins {
+    id 'maven-publish'
+}
+
+allprojects {
+    apply plugin: 'base'
+}
+
+subprojects {
+
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+    sourceCompatibility = '11'
+
+    group = 'org.apromore.alignment'
+    version = '0.1'
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+
+        implementation 'org.springframework.boot:spring-boot-starter'
+        implementation 'org.springframework.boot:spring-boot-starter-logging'
+        compileOnly 'org.projectlombok:lombok'
+        testCompileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.java
+            }
+        }
+        repositories {
+            mavenLocal()
+
+            maven {
+                def baseUrl = getProperty('repoUrl')
+                def releasesRepoUrl = "$baseUrl/repository/maven-releases/"
+                def snapshotsRepoUrl = "$baseUrl/repository/maven-snapshots/"
+                url = project.hasProperty('release') ? releasesRepoUrl : snapshotsRepoUrl
+                name = 'AutomataConformance'
+                credentials {
+                    username getProperty('repoUser')
+                    password getProperty('repoPass')
+                }
+            }
+        }
+    }
+}

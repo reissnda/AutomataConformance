@@ -1,2 +1,40 @@
-# AutomataConformance
-This repository contains the open source code for my PhD project about determining conformance in process mining in a more scalable way. The technique involves comparing automata structures representing the event log and the process model. Additionally, several improvements have been impemented: Parallelism in process models is broken down in a divide-and-conquer approach based on S-Components. Repeated sequences in the event log are reduced via tandem repeats to further speed up computation.
+# AutomataConformance (align-web)
+
+## Build and run for production with Docker
+
+### Build codebase
+
+### Build inside Docker (recommended)
+
+`docker build -t apromore/align-web:latest -f docker/gradle/Dockerfile .`
+
+### With gradle only (no Docker)
+
+At the project root, run:
+
+`gradle clean build -x test`
+
+## Build and run Docker image
+
+After running a gradle build, at the project root, run:
+
+`docker build -t align-web .`
+
+### Run with Docker
+
+To expose the service on port 8091, run:
+
+`docker run -d -p 8091:8080 align-web`
+
+To check service health, call:
+
+http://localhost:8091/actuator/health 
+
+Expected response:
+
+```json
+{
+  "status": "UP"
+}
+```
+

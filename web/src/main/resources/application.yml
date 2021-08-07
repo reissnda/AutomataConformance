@@ -1,0 +1,15 @@
+# See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#howto-automatic-expansion
+info:
+  app:
+    java:
+      source: ${sourceCompatibility}
+      target: ${sourceCompatibility}
+    version: ${version?:development}
+    name: ${name}
+    groupId: ${group}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
