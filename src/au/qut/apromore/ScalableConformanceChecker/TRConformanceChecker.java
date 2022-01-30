@@ -252,6 +252,8 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
                     if((maxResult=results.get(max))==null)
                     {
                         fitnessProblemsSolved++;
+                        if(max==1)
+                            System.out.println("Analyze");
                         maxResult = this.calculateReducedAlignmentFor(finalConfiguration, logAutomaton.reductions.get(reducedTrace).get(keySet[max]).getFirst(), stateLimit);
                         results.put(max,maxResult);
                     }
@@ -976,15 +978,131 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
         //System.out.println(decoder.trace());
     }
 
+    public static ReducedResult calculateReducedAlignment(DecodeTandemRepeats decoder, Automaton dafsa, Automaton modelAutomaton)
+    {
+        PSP psp = new PSP(dafsa, modelAutomaton);
+        double start = System.currentTimeMillis();
+        int stateLimit = Integer.MAX_VALUE;
+        PriorityQueue<Node> toBeVisited = new PriorityQueue<>(new NodeComparator());
+        Node currentNode = psp.sourceNode();
+        UnifiedSet<Node> potentialFinalNodes = new UnifiedSet<Node>();
+        //if(minModelMoves==0) minModelMoves=Integer.MAX_VALUE;
+        int minModelMoves = modelAutomaton.minNumberOfModelMoves();
+        double actMin = (double) (decoder.adjustedCost().sum() + minModelMoves);
+        Node potentialNode;
+        //int sizeMoveOnLog;
+        double numStates = 1;
+        int qStates = 1;
+        boolean useVisited=true;
+        IntIntHashMap visited = new IntIntHashMap();
+		/*Set<Node> prefixMemoization =  this.getPrefixMemoization(traceLabels);
+		for(Node node : prefixMemoization)
+		{
+			potentialNode = this.cloneNodeForConfiguration(node, finalConfiguration, traceLabels);
+			this.offerPotentialNodeWithPruning(potentialNode, actMin, toBeVisited);
+		}*/
+        offerPotentialNodeWithPruning(currentNode, actMin, toBeVisited,visited);
+        if(decoder.reducedTrace().equals(IntArrayList.newListWith(0,1,3,4,3,4,2,4,4,5,6)))
+            System.out.println("Test");
+        while(true)
+        {
+            /*if(toBeVisited.isEmpty())
+            {
+                System.out.println("Problem");
+            }*/
+            currentNode = toBeVisited.poll();
+            /*if(currentNode==null && useVisited)
+            {
+                useVisited=false;
+                return calculateReducedAlignmentFor(finalConfiguration, decoder, stateLimit);
+            }*/
+            /*if(currentNode.weight()==actMin)
+            {
+
+            }*/
+            numStates++;
+            if(useVisited)
+                if (visited.containsKey(currentNode.hashCode()))
+                {
+                    if (visited.get(currentNode.hashCode()) <= currentNode.weight()) {
+                        continue;
+                    }
+                }
+            visited.put(currentNode.hashCode(), (int) currentNode.weight());
+            if(numStates == stateLimit)
+                break;
+            if(qStates!=stateLimit)
+                if(currentNode.tracePosition!=decoder.reducedTrace().size())// && visited.size()<=stateLimit)
+                {
+                    int expTraceLabel = decoder.reducedTrace().get(currentNode.tracePosition);
+                    for(Transition tlog : currentNode.stLog().outgoingTransitions())
+                        if(tlog.eventID()==expTraceLabel)
+                        {
+                            //see if match is possible
+                            for(Transition tmodel : currentNode.stModel().outgoingTransitions())
+                                if(tlog.eventID()==tmodel.eventID())
+                                {
+                                    potentialNode = initializePotentialNode(currentNode, tlog, tmodel, Configuration.Operation.MATCH, decoder);
+                                    offerPotentialNodeWithPruning(potentialNode, actMin, toBeVisited, visited);
+
+                                }
+                            //consider LHIDE
+                            potentialNode = initializePotentialNode(currentNode, tlog, null, Configuration.Operation.LHIDE, decoder);
+                            offerPotentialNodeWithPruning(potentialNode, actMin, toBeVisited,visited);
+                        }
+                }
+
+            if(qStates!=stateLimit)
+                for(Transition tmodel : currentNode.stModel().outgoingTransitions())
+                {
+                    potentialNode = initializePotentialNode(currentNode, null, tmodel, Configuration.Operation.RHIDE, decoder);
+                    offerPotentialNodeWithPruning(potentialNode, actMin, toBeVisited,visited);
+                }
+
+            if(
+                    currentNode.stLog().isFinal()
+                            && currentNode.stModel().isFinal()
+                            && currentNode.tracePosition==decoder.reducedTrace().size()
+            )
+            {
+                if(currentNode.weight()<actMin)
+                {
+                    potentialFinalNodes = new UnifiedSet<Node>();
+                    actMin = currentNode.weight();
+                }
+                potentialFinalNodes.add(currentNode);
+//				potentialFinalNodes.offer(currentNode);
+                actMin = (double) potentialFinalNodes.getFirst().weight();
+                break;
+            }
+            if(toBeVisited.isEmpty()) break; //System.out.println("Screw you!");
+                //if(actMin < toBeVisited.min().getPriority()) break;
+            else if(toBeVisited.peek().weight() > actMin) break;
+        }
+        double end = System.currentTimeMillis();
+        useVisited = true;
+        if(potentialFinalNodes.isEmpty())
+        {
+            //System.out.println("Problem");
+        }
+        return new ReducedResult(potentialFinalNodes.getFirst(),numStates,numStates+toBeVisited.size(),end-start);
+    }
+
     private ReducedResult calculateReducedAlignmentFor(IntIntHashMap finalConfiguration, DecodeTandemRepeats decoder, int stateLimit)
     {
         double start = System.currentTimeMillis();
+        String traceLabels = "";
+        for(int pos=0;pos<decoder.trace().size();pos++) traceLabels+= logAutomaton.eventLabels().get(decoder.trace().get(pos)) + ",";
+        if(traceLabels.equals("Z,V,W,X,Y,Z,V,W,X,Y,Z,V,W,X,Y,Z,V,W,X,Y,Z,V,W,X,Y,Z,V,W,X,"))
+            System.out.println("found");
         PriorityQueue<Node> toBeVisited = new PriorityQueue<>(new NodeComparator());
         Node currentNode = psp.sourceNode();
         UnifiedSet<Node> potentialFinalNodes = new UnifiedSet<Node>();
         int minModelMoves = modelAutomaton.minNumberOfModelMoves();
         //if(minModelMoves==0) minModelMoves=Integer.MAX_VALUE;
-        double actMin = (double) (decoder.trace().size() + minModelMoves);
+        double logMinMoves = 0;
+        if(decoder.reducedTrace().size()!=0) logMinMoves=decoder.adjustedCost().sum()+decoder.reducedTrace().size();
+        double actMin = (double) (logMinMoves + minModelMoves);
         Node potentialNode;
         //int sizeMoveOnLog;
         double numStates = 1;
@@ -2086,6 +2204,50 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
         psp.finalNodes().add(finalNode);
     }*/
 
+    private static Node initializePotentialNode(Node currentNode, Transition tlog, Transition tmodel, Configuration.Operation operation, DecodeTandemRepeats decoder)
+    {
+        Configuration potentialConfiguration;
+        Node potentialNode;
+        if(operation == Configuration.Operation.MATCH)
+        {
+            potentialConfiguration = currentNode.configuration().cloneConfiguration();
+            potentialConfiguration.sequenceSynchronizations().add(new au.qut.apromore.psp.Synchronization(Configuration.Operation.MATCH, tlog.eventID(), tmodel.eventID(), tlog.target().id(), tmodel.target().id(), currentNode.hashCode()));
+            potentialNode = new Node(tlog.target(), tmodel.target(), potentialConfiguration, currentNode.tracePosition + 1, currentNode.weight());
+            if(decoder.doCompression) potentialNode.getTracePenalties().putAll(currentNode.getTracePenalties());
+        }
+        else if (operation == Configuration.Operation.LHIDE)
+        {
+            potentialConfiguration = currentNode.configuration().cloneConfiguration();
+            potentialConfiguration.sequenceSynchronizations().add(new au.qut.apromore.psp.Synchronization(Configuration.Operation.LHIDE, tlog.eventID(), -1, tlog.target().id(), -1, currentNode.hashCode()));
+            int posFutPenalty = -1;
+            boolean penaltyAlreadyPaid = false;
+            double weight = currentNode.weight() + 1.0;
+            if(decoder.isReduced().get(currentNode.tracePosition))
+            {
+                if (decoder.isFirstTRelement().get(currentNode.tracePosition))
+                {
+                    posFutPenalty = decoder.getSecondTRpositions().get(currentNode.tracePosition);
+                    penaltyAlreadyPaid = true;
+                    weight += decoder.adjustedCost().get(currentNode.tracePosition);
+                }
+                else if(!currentNode.getTracePenalties().get(currentNode.tracePosition))
+                {
+                    weight += decoder.adjustedCost().get(currentNode.tracePosition);
+                }
+            }
+            potentialNode = new Node(tlog.target(), currentNode.stModel(), potentialConfiguration, currentNode.tracePosition+1, weight,posFutPenalty,penaltyAlreadyPaid);
+            //calculateCost(potentialConfiguration, finalConfiguration, tlog.target(), currentNode.stModel(), decoder));
+            if(decoder.doCompression) potentialNode.getTracePenalties().putAll(currentNode.getTracePenalties());
+        } else
+        {
+            potentialConfiguration = currentNode.configuration().cloneConfiguration();
+            potentialConfiguration.sequenceSynchronizations().add(new au.qut.apromore.psp.Synchronization(Configuration.Operation.RHIDE, -1, tmodel.eventID()));
+            potentialNode = new Node(currentNode.stLog(), tmodel.target(), potentialConfiguration, currentNode.tracePosition, currentNode.weight() + decoder.adjustedRHIDECost().get(currentNode.tracePosition));
+            if(decoder.doCompression) potentialNode.getTracePenalties().putAll(currentNode.getTracePenalties());
+        }
+        return potentialNode;
+    }
+
     private Node initializePotentialNode(Node currentNode, Transition tlog, Transition tmodel, Configuration.Operation operation,
                                          IntIntHashMap finalConfiguration, boolean insertToPSP, DecodeTandemRepeats decoder) //, PrintWriter pw)
     {
@@ -2503,7 +2665,6 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
         return(ret);
     }
 
-    //TODO: Implement Pruning
     private void offerPotentialNodeWithPruning(Node potentialNode, double actMin, Queue<Node> toBeVisited)
     //private void offerPotentialNodeWithPruning(Node potentialNode, int actMin, FibonacciHeap<Node> toBeVisited, Set<Node> visited)
     {
@@ -2523,6 +2684,15 @@ public class TRConformanceChecker implements Callable<TRConformanceChecker> {
         qStates++;
         //toBeVisited.enqueue(potentialNode, potentialNode.weight());
 
+        toBeVisited.offer(potentialNode);
+    }
+
+    private static void offerPotentialNodeWithPruning(Node potentialNode, double actMin, Queue<Node> toBeVisited, IntIntHashMap visited)
+    {
+        if(visited.containsKey(potentialNode.hashCode()))
+        {
+            if(visited.get(potentialNode.hashCode()) <= potentialNode.weight()) return;
+        }
         toBeVisited.offer(potentialNode);
     }
 

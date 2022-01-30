@@ -71,18 +71,18 @@ public class DecomposingTRConformanceChecker
         //parallelize here!
         ArrayList<Integer> compList = new ArrayList<Integer>();
         for(int pos = 0; pos < decompositions.sComponentFSMs.size(); pos++) compList.add(pos);
-        compList.parallelStream().forEach
+        /*compList.parallelStream().forEach
                 (
                         sComp -> componentAlignments.put
                                 (
                                         sComp,
                                         new TRConformanceChecker(decompositions.componentDAFSAs.get(sComp), decompositions.sComponentFSMs.get(sComp), Integer.MAX_VALUE)
                                 )
-                );
-		/*for(int pos=0; pos < decompositions.sComponentFSMs.size(); pos++)
+                );*/
+		for(int sComp=0; sComp < decompositions.sComponentFSMs.size(); sComp++)
 		{
-			componentAlignments.put(pos,new ScalableConformanceChecker(decompositions.componentDAFSAs.get(pos), decompositions.sComponentFSMs.get(pos), Integer.MAX_VALUE));
-		}*/
+			componentAlignments.put(sComp,new TRConformanceChecker(decompositions.componentDAFSAs.get(sComp), decompositions.sComponentFSMs.get(sComp), Integer.MAX_VALUE));
+		}
         /*for(Automaton modelFSM : decompositions.sComponentFSMs)
         {
             for(int label : modelFSM.minimalFinalConfig.keySet().toArray())
@@ -530,7 +530,7 @@ public class DecomposingTRConformanceChecker
         double moveLogFitness = 0;
         double traceLength = 0;
         double queuedStates = 0;
-        logSize =  decompositions.xLog.size();
+        logSize =  decompositions.getLogSize();
         //System.out.println(logSize + " - " + alignmentResult.size() + " - " + decompositions.caseTracesMapping.size());
         //System.out.println(logSize);
         //for(IntArrayList trace : decompositions.caseTracesMapping.keySet())

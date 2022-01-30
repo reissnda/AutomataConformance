@@ -595,4 +595,19 @@ public class DecomposingConformanceImporter extends ImportProcessModel
 		pw.println("}");
 		pw.close();
 	}
+
+    public double getLogSize()
+	{
+		double logSize=0;
+		if(this.xLog==null)
+		{
+			//logSize = this.caseTracesMapping.size();
+			for(IntArrayList trace : this.caseTracesMapping.keySet())
+			{
+				logSize+=this.caseTracesMapping.get(trace).size();
+			}
+		}
+		else logSize=xLog.size();
+		return logSize;
+    }
 }

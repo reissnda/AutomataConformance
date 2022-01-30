@@ -125,7 +125,7 @@ public class AlignmentTest {
 		return;
 	}
 
-	public static PNRepResult computeCost(PetrinetGraph net, XLog log)
+	public static PNRepResult computeCost(PetrinetGraph net, XLog log, boolean useILP)
 	{
 		AbstractPILPDelegate.setDebugMode(null);
 
@@ -145,10 +145,10 @@ public class AlignmentTest {
 
 
 		return AlignmentTest.computeCost(costMOS, costMOT, initialMarking, finalMarkings,
-				new TestPluginContext(), net, log, mapping, true, ASynchronousMoveSorting.LOGMOVEFIRST);
+				new TestPluginContext(), net, log, mapping, useILP, ASynchronousMoveSorting.LOGMOVEFIRST);
 	}
 
-	public PNRepResult computeCost(PetrinetGraph net, XLog log, int numThreads)
+	public PNRepResult computeCost(PetrinetGraph net, XLog log, int numThreads, boolean useILP)
 	{
 		AbstractPILPDelegate.setDebugMode(null);
 
@@ -168,7 +168,7 @@ public class AlignmentTest {
 
 
 		return AlignmentTest.computeCost(costMOS, costMOT, initialMarking, finalMarkings,
-				new TestPluginContext(), net, log, mapping, true, ASynchronousMoveSorting.LOGMOVEFIRST);
+				new TestPluginContext(), net, log, mapping, useILP, ASynchronousMoveSorting.LOGMOVEFIRST, numThreads);
 	}
 
 	public static PNRepResult computeCost(Map<Transition, Integer> costMOS, Map<XEventClass, Integer> costMOT,

@@ -1,0 +1,16 @@
+<component name="ArtifactManager">
+  <artifact name="PatternGeneralization:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/PatternGeneralization_jar</output-path>
+    <root id="root">
+      <element id="archive" name="PatternGeneralization.jar">
+        <element id="directory" name="META-INF">
+          <element id="file-copy" path="$PROJECT_DIR$/src/au/unimelb/evaluation/META-INF/MANIFEST.MF" />
+        </element>
+        <element id="module-output" name="AutomataConformance" />
+        <element id="module-output" name="bin" />
+      </element>
+      <element id="library" level="project" name="ScalableConformance_jar" />
+      <element id="library" level="project" name="Libraries" />
+    </root>
+  </artifact>
+</component>

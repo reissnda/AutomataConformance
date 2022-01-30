@@ -1,0 +1,15 @@
+<component name="ArtifactManager">
+  <artifact name="AutomataConformance:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/AutomataConformance_jar</output-path>
+    <root id="root">
+      <element id="archive" name="AutomataConformance.jar">
+        <element id="directory" name="META-INF">
+          <element id="file-copy" path="$PROJECT_DIR$/src/main/META-INF/MANIFEST.MF" />
+        </element>
+        <element id="module-output" name="AutomataConformance" />
+      </element>
+      <element id="library" level="project" name="ScalableConformance_jar" />
+      <element id="library" level="project" name="Libraries" />
+    </root>
+  </artifact>
+</component>

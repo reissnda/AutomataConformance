@@ -24,7 +24,7 @@ public class DecodeTandemRepeats
     IntObjectHashMap<UnifiedSet<Couple<Integer,Integer>>> maximalPrimitiveRepeats = new IntObjectHashMap<>();
     IntIntHashMap finalConfiguration;
     IntIntHashMap finalReducedConfiguration;
-    private IntArrayList startReduce, reduceLength, reduceTo;
+    public IntArrayList startReduce, reduceLength, reduceTo;
     private IntArrayList reducedTrace;
     private IntIntHashMap reducedLabels;
     private int reductionLength = 0;
@@ -39,7 +39,9 @@ public class DecodeTandemRepeats
     {
         IntArrayList test = new IntArrayList();
         //test.addAll(1,2,1,1,2,1,1,2,2,1,1,1,2,1,1,2,1);
-        test.addAll(1,2,1,1,2,1,1,2,1,1,2,1,1,2,2,1,1,1,2,1,1,2,1,1,2,1,1,2,1);
+        //test.addAll(1,2,1,1,2,1,1,2,1,1,2,1,1,2,2,1,1,1,2,1,1,2,1,1,2,1,1,2,1);
+        //test.addAll(1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5);
+        test.addAll(4,5,6,7,8,4,5,6,7,8,4,5,6,7,8,4,5,6,7,8,4,5,6,7,8,4,5,6,7,8);
         //test.addAll(2,1,2,2,1,2,1,2,2,2,1,2);
         //test.addAll(1,2,3,3,2,3,3,2,4,4,2,2);
         //test.addAll(1,2,3,3,2,3,3,2,3,3,2,4,4,2,2);
@@ -101,8 +103,94 @@ public class DecodeTandemRepeats
         this.adjustedRHIDECost.add(1.0);
     }
 
+    //method for creating a more generalizing repetitive pattern
+    public DecodeTandemRepeats (DecodeTandemRepeats decoder)
+    {
+        //if(decoder.reducedTrace().equals(IntArrayList.newListWith(0,1,3,4,3,4,2,4,4,5,6)))
+        //    System.out.println("What goes wrong here?");
+        this.trace=decoder.trace;
+        this.reducedTrace = decoder.reducedTrace;
+        this.startReduce = decoder.startReduce;
+        this.reduceLength = decoder.reduceLength;
+        this.reduceTo=decoder.reduceTo;
+        this.isFirstTRelement=decoder.isFirstTRelement;
+        this.isReduced=decoder.isReduced;
+        this.doCompression=decoder.doCompression;
+        this.SecondTRpositions=decoder.SecondTRpositions;
+        if(doCompression) {
+            this.adjustedCost = new DoubleArrayList();
+            this.adjustedRHIDECost = new DoubleArrayList();
+            for (int redPos = 0; redPos < this.reducedTrace.size(); redPos++) {
+                if (decoder.adjustedCost.get(redPos) > 1) {
+                    this.adjustedCost.add(this.reducedTrace.size());
+                } else {
+                    this.adjustedCost.add(1);
+                }
+            }
+            int posToReduce = 0;
+            for (int pos = 0; pos < adjustedCost.size(); pos++) {
+                if (posToReduce < startReduce.size()) {
+                    if (pos == startReduce.get(posToReduce) - 1) {
+                        adjustedRHIDECost.add(1);
+                        posToReduce++;
+                    } else if (this.isReduced.get(pos)) adjustedRHIDECost.add(adjustedCost.get(pos) + 1);
+                    else adjustedRHIDECost.add(1);
+                } else if (this.isReduced.get(pos)) adjustedRHIDECost.add(adjustedCost.get(pos) + 1);
+                else adjustedRHIDECost.add(1);
+            }
+            this.adjustedRHIDECost.add(1);
+        }
+        else
+        {
+            this.adjustedCost = decoder.adjustedCost;
+            this.adjustedRHIDECost= decoder.adjustedRHIDECost;
+        }
+        this.startReduce=new IntArrayList();
+        finalReducedConfiguration = new IntIntHashMap();
+        for(int label : this.reducedTrace().distinct().toArray()) finalReducedConfiguration.put(label, this.reducedTrace().count(l -> l==label));
+    }
+
+    public DecodeTandemRepeats(DecodeTandemRepeats decoder, IntArrayList traceProjectionLabels)
+    {
+        this(decoder);
+        IntArrayList projectedReducedTrace=new IntArrayList();
+        DoubleArrayList projectedAdjustedCosts=new DoubleArrayList();
+        DoubleArrayList projectedRHideAdjustedCosts=new DoubleArrayList();
+        BooleanArrayList projectedIsReduced = new BooleanArrayList();
+        BooleanArrayList projectedFirstTRpositions = new BooleanArrayList();
+        IntIntHashMap projectedSecondTRpositions = new IntIntHashMap();
+        IntIntHashMap intermediateStoredSecond= new IntIntHashMap();
+        int posProjected=0;
+        for(int pos=0; pos< this.reducedTrace.size();pos++)
+        {
+            int label = this.reducedTrace.get(pos);
+            if(traceProjectionLabels.contains(label))
+            {
+                projectedReducedTrace.add(label);
+                projectedAdjustedCosts.add(this.adjustedCost.get(pos));
+                projectedRHideAdjustedCosts.add(this.adjustedRHIDECost.get(pos));
+                projectedIsReduced.add(isReduced.get(pos));
+                projectedFirstTRpositions.add(isFirstTRelement.get(pos));
+                if(isFirstTRelement.get(pos)) intermediateStoredSecond.put(getSecondTRpositions().get(pos),posProjected);
+                else if(isReduced.get(pos)) projectedSecondTRpositions.put(intermediateStoredSecond.get(pos),posProjected);
+                posProjected++;
+            }
+        }
+        projectedRHideAdjustedCosts.add(1);
+        this.reducedTrace=this.trace=projectedReducedTrace;
+        this.adjustedCost=projectedAdjustedCosts;
+        this.adjustedRHIDECost=projectedRHideAdjustedCosts;
+        this.isReduced=projectedIsReduced;
+        this.isFirstTRelement=projectedFirstTRpositions;
+        this.SecondTRpositions=projectedSecondTRpositions;
+        finalReducedConfiguration = new IntIntHashMap();
+        for(int label : this.reducedTrace().distinct().toArray()) finalReducedConfiguration.put(label, this.reducedTrace().count(l -> l==label));
+    }
+
     public DecodeTandemRepeats(IntArrayList trace, int $, int $$)
     {
+        //if(trace.equals(IntArrayList.newListWith(0,1,3,4,3,4,3,4,2,4,4,4,5,6)))
+        //    System.out.println("Why are the adjustedCosts wrong?");
         this.trace = trace;
         //TObjectShortHashMap map = new TObjectShortHashMap();
         finalConfiguration = new IntIntHashMap();
@@ -226,6 +314,16 @@ public class DecodeTandemRepeats
         return SecondTRpositions;
     }
 
+    public IntIntHashMap getFinalConfiguration()
+    {
+        return this.finalConfiguration;
+    }
+
+    public IntIntHashMap getFinalReducedConfiguration()
+    {
+        return this.finalReducedConfiguration;
+    }
+
     public void reduceTandemRepeats()
     {
        if(!tandemRepeats.isEmpty())
@@ -332,7 +430,7 @@ public class DecodeTandemRepeats
                        startReduce.addAtIndex(pos2, copy - (reduceLength.get(posToReduce) - reduceTo.get(posToReduce)));
                     }
                     if(reduceLength.get(posToReduce) > reduceTo.get(posToReduce)) {
-                        cost = ((double) reduceLength.get(posToReduce)) / (((double) reduceTo.get(posToReduce)) / 2) -2.5;
+                        cost = ((double) reduceLength.get(posToReduce)) / (((double) reduceTo.get(posToReduce)) / 2) -2;
                     }
                     else cost = 1;
                    for(int pos2 = pos; pos2 < pos + reduceTo.get(posToReduce);pos2++)
@@ -385,10 +483,10 @@ public class DecodeTandemRepeats
                    adjustedRHIDECost.add(1);
                    posToReduce++;
                }
-               else if(this.isReduced.get(pos)) adjustedRHIDECost.add(adjustedCost.get(pos)+1);
+               else if(this.isReduced.get(pos)) adjustedRHIDECost.add(adjustedCost.get(pos));
                else adjustedRHIDECost.add(1);
            }
-           else if(this.isReduced.get(pos)) adjustedRHIDECost.add(adjustedCost.get(pos)+1);
+           else if(this.isReduced.get(pos)) adjustedRHIDECost.add(adjustedCost.get(pos));
            else adjustedRHIDECost.add(1);
        }
 
@@ -421,7 +519,7 @@ public class DecodeTandemRepeats
                     //tandem repeat is primitive
                     determineMaxRepetitions(pos, alpha);
                 }
-                else if(alpha.size() % 2 == 0)
+                else if(alpha.size() % alphabet.size() == 0)
                 {
                     DecodeTandemRepeats decoder = new DecodeTandemRepeats(alpha,arTrace[0],arTrace[n+1]);
                     if((posOneKs = decoder.tandemRepeats.get(1)) != null)

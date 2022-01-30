@@ -34,6 +34,7 @@ public class ConformanceWrapperTRMT implements Callable<ConformanceWrapperTRMT>
     int numSCompThreads=1;
     DecomposingConformanceImporter stats;
     public long time =0;
+    public long memory=0;
     public long TwithoutConflict=0;
     public double cost = 0;
     public double fitness = 0;
@@ -55,7 +56,7 @@ public class ConformanceWrapperTRMT implements Callable<ConformanceWrapperTRMT>
         model = args[1];
         log = args[2];
         type = args[3];
-        numTraceThreads = Integer.parseInt(args[4]);
+        numTraceThreads = Integer.parseInt(args[5]);
         if(args.length==7) numSCompThreads = Integer.parseInt(args[6]);
     }
 
@@ -67,10 +68,18 @@ public class ConformanceWrapperTRMT implements Callable<ConformanceWrapperTRMT>
                 XLog xLog = new ImportEventLog().importEventLog(path + log);
                 Object[] pnetAndM = new ImportProcessModel().importPetriNetAndMarking(path + model);
                 //decomposer.importAndDecomposeModelAndLogForConformanceChecking(path, model, log);
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 decomposer.importAndDecomposeModelAndLogForConformanceChecking((Petrinet) pnetAndM[0], (Marking) pnetAndM[1], xLog);
                 scomp = new MultiThreadedDecomposedConformanceChecker(decomposer, numSCompThreads, numTraceThreads);
                 time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = Double.parseDouble(scomp.alignmentResult.getInfo().get(PNMatchInstancesRepResult.RAWFITNESSCOST));
                 fitness = Double.parseDouble(scomp.alignmentResult.getInfo().get(PNMatchInstancesRepResult.TRACEFITNESS));
                 //nSComps=decomposer.sComponentFSMs.size();
@@ -84,10 +93,18 @@ public class ConformanceWrapperTRMT implements Callable<ConformanceWrapperTRMT>
             } else if (type.equals("TR")) {
                 ///System.out.println("Start");
                 TRImporter importer = new TRImporter(path, log, model);
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 importer.createAutomata();
                 pro = new MultiThreadedTRConformanceChecker(importer.logAutomaton, importer.modelAutomaton, Integer.MAX_VALUE, numTraceThreads);
                 time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = Double.parseDouble(pro.resOneOptimal().getInfo().get(PNMatchInstancesRepResult.RAWFITNESSCOST));
                 fitness = Double.parseDouble(pro.resOneOptimal().getInfo().get(PNMatchInstancesRepResult.TRACEFITNESS));
                 fitnessProblemsSolved = pro.fitnessProblemsSolved;
@@ -96,20 +113,32 @@ public class ConformanceWrapperTRMT implements Callable<ConformanceWrapperTRMT>
                 XLog xLog = new ImportEventLog().importEventLog(path + log);
                 Object[] pnetAndM = new ImportProcessModel().importPetriNetAndMarking(path + model);
                 DecomposingTRImporter decomposer = new DecomposingTRImporter();
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 decomposer.importAndDecomposeModelAndLogForConformanceChecking((Petrinet) pnetAndM[0], (Marking) pnetAndM[1], xLog);
                 tr_scomp = new MTDecomposingTRConformanceChecker(decomposer, numTraceThreads, numSCompThreads);
                 time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = Double.parseDouble(tr_scomp.alignmentResult.getInfo().get(PNMatchInstancesRepResult.RAWFITNESSCOST));
                 fitness = Double.parseDouble(tr_scomp.alignmentResult.getInfo().get(PNMatchInstancesRepResult.TRACEFITNESS));
                 fitnessProblemsSolved = tr_scomp.alignmentResult.size();
                 TwithoutConflict = tr_scomp.TwithoutConflict;
                 caseIDs = (UnifiedMap) decomposer.caseIDs;
-            } else if (false && type.equals("BVD-Alignments")) {
+            } else if (type.equals("BVD-Alignments")) {
                 XLog xLog = new ImportEventLog().importEventLog(path + log);
                 Object[] pnet_info = new ImportProcessModel().importPetriNetAndMarking(path + model);
                 Petrinet pnet = (Petrinet) pnet_info[0];
                 Marking initMarking = (Marking) pnet_info[1];
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 XEventNameClassifier classifier = new XEventNameClassifier();
                 XLogInfo summary = XLogInfoFactory.createLogInfo(xLog, classifier);
@@ -120,45 +149,114 @@ public class ConformanceWrapperTRMT implements Callable<ConformanceWrapperTRMT>
                 PNRepResult res = emeq_alignments.doReplay(xLog, pnet, initMarking, finalMarking, summary.getEventClasses(), mapping, numTraceThreads);
                 //System.out.println(res.getInfo());
                 long alignmentTime = System.nanoTime() - start;
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = Double.parseDouble((String) res.getInfo().get(PNRepResult.RAWFITNESSCOST));
                 time = TimeUnit.MILLISECONDS.convert(alignmentTime, TimeUnit.NANOSECONDS);
                 fitnessProblemsSolved = Double.parseDouble((String) res.getInfo().get(PNMatchInstancesRepResult.NUMALIGNMENTS));
                 //cost = BVDAlignmentTest
                 //System.out.print("Time: " + time + "ms");
-            } else if (false && type.equals("ILP-Alignments")) {
+            } else if (type.equals("ILP-Alignments")) {
                 XLog xLog = new ImportEventLog().importEventLog(path + log);
                 Petrinet pnet = (Petrinet) new ImportProcessModel().importPetriNetAndMarking(path + model)[0];
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 alignments = new AlignmentTest();
-                PNRepResult res = alignments.computeCost(pnet, xLog, numTraceThreads);
+                PNRepResult res = alignments.computeCost(pnet, xLog, numTraceThreads, true);
                 time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = (Double) res.getInfo().get(PNRepResult.RAWFITNESSCOST);
                 fitnessProblemsSolved = res.size();
-            } else if (type.equals("Automata-Conformance")) {
+            } else if (type.equals("LP-Alignments")) {
+                XLog xLog = new ImportEventLog().importEventLog(path + log);
+                Petrinet pnet = (Petrinet) new ImportProcessModel().importPetriNetAndMarking(path + model)[0];
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
+                long start = System.nanoTime();
+                alignments = new AlignmentTest();
+                PNRepResult res = alignments.computeCost(pnet, xLog, numTraceThreads, false);
+                time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
+                cost = (Double) res.getInfo().get(PNRepResult.RAWFITNESSCOST);
+                fitnessProblemsSolved = res.size();
+            }
+            else if (type.equals("Automata-Conformance")) {
                 Automaton dafsa = new ImportEventLog().convertLogToAutomatonFrom(path + log);
                 ImportProcessModel importer = new ImportProcessModel();
                 //System.out.println("Log imported");
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 Automaton fsm = importer.createFSMfromPNMLFile(path + model, dafsa.eventLabels(), dafsa.inverseEventLabels());
                 //fsm.toDot(path + model.substring(0,model.length()-5) + ".dot");
                 checker = new MultiThreadedConformanceChecker(dafsa, fsm, Integer.MAX_VALUE, numTraceThreads);
                 time = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = Double.parseDouble(checker.resOneOptimal.getInfo().get(PNMatchInstancesRepResult.RAWFITNESSCOST));
                 fitness = Double.parseDouble(checker.resOneOptimal.getInfo().get(PNMatchInstancesRepResult.TRACEFITNESS));
                 pnresult = checker.resOneOptimal;
                 fitnessProblemsSolved = Double.parseDouble((String) pnresult.getInfo().get(PNMatchInstancesRepResult.NUMALIGNMENTS));
                 //System.out.println(checker.resOneOptimal.getInfo());
             }
-            else
+            else if(type.equals("MeasurePreprocessingTimes"))
+            {
+                XLog xLog = new ImportEventLog().importEventLog(path + log);
+                Object[] pnetAndM = new ImportProcessModel().importPetriNetAndMarking(path + model);
+                DecomposingTRImporter decomposer = new DecomposingTRImporter();
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
+                long start = System.nanoTime();
+                decomposer.importAndDecomposeModelAndLogForConformanceChecking((Petrinet) pnetAndM[0], (Marking) pnetAndM[1], xLog);
+                //HybridConformanceChecker hybrid = new HybridConformanceChecker(decomposer, numTraceThreads);
+                time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
+                //cost = Double.parseDouble(hybrid.getAlignments().getInfo().get(PNMatchInstancesRepResult.RAWFITNESSCOST));
+                cost=-1;
+                //fitness = Double.parseDouble(hybrid.getAlignments().getInfo().get(PNMatchInstancesRepResult.TRACEFITNESS));
+                fitness=-1;
+                //fitnessProblemsSolved = hybrid.getAlignments().size();
+                //caseIDs = (UnifiedMap) decomposer.caseIDs;
+            } else
             {
                 type = "Hybrid approach";
                 XLog xLog = new ImportEventLog().importEventLog(path + log);
                 Object[] pnetAndM = new ImportProcessModel().importPetriNetAndMarking(path + model);
                 DecomposingTRImporter decomposer = new DecomposingTRImporter();
+                Runtime runtime = Runtime.getRuntime();
+                System.gc();
+                long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+                //System.out.println("Used Memory before: " + usedMemoryBefore/1000000);
                 long start = System.nanoTime();
                 decomposer.importAndDecomposeModelAndLogForConformanceChecking((Petrinet) pnetAndM[0], (Marking) pnetAndM[1], xLog);
                 HybridConformanceChecker hybrid = new HybridConformanceChecker(decomposer, numTraceThreads);
                 time = TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                System.gc();
+                long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+                memory=(usedMemoryAfter-usedMemoryBefore)/1000000;
+                //System.out.println("Memory increased:" + memory);
                 cost = Double.parseDouble(hybrid.getAlignments().getInfo().get(PNMatchInstancesRepResult.RAWFITNESSCOST));
                 fitness = Double.parseDouble(hybrid.getAlignments().getInfo().get(PNMatchInstancesRepResult.TRACEFITNESS));
                 fitnessProblemsSolved = hybrid.getAlignments().size();

@@ -60,7 +60,7 @@ import lpsolve.LpSolveException;
  * License, or (at your option) any later version.
  *
  * "Apromore" is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; witfhout even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
@@ -93,7 +93,8 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 	private PNMatchInstancesRepResult resOneOptimal;
 	private PNMatchInstancesRepResult resAllOptimal;
 	private Map<IntArrayList, AllSyncReplayResult> caseReplayResultMapping;
-	public UnifiedMap<IntArrayList, AllSyncReplayResult> traceAlignmentsMapping = new UnifiedMap<IntArrayList, AllSyncReplayResult>(); 
+	public UnifiedMap<IntArrayList, AllSyncReplayResult> traceAlignmentsMapping = new UnifiedMap<IntArrayList, AllSyncReplayResult>();
+	public List<List<Synchronization>> alignmentsWithDifferentFormatting = new FastList<>();
 	public int cost = 0;
 	//public LongIntHashMap statePruning;
 	IntIntHashMap visited = new IntIntHashMap();
@@ -684,6 +685,7 @@ public class ScalableConformanceChecker implements Callable<ScalableConformanceC
 		//report results
 		Node potentialFinalNode = null;
 		potentialFinalNode = potentialFinalNodes.iterator().next();
+			this.alignmentsWithDifferentFormatting.add(potentialFinalNode.configuration().sequenceSynchronizations());
 		List<Object> nodeInstanceLst = new FastList<Object>();
 		List<StepTypes> stepTypesLst = new FastList<StepTypes>();
 		lstNodeInstanceLst.add(nodeInstanceLst);

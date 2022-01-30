@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import au.unimelb.partialorders.PartialOrder;
+import au.unimelb.pattern.ReducedTrace;
 import org.deckfour.xes.extension.XExtension;
 import org.deckfour.xes.extension.XExtensionManager;
 import org.deckfour.xes.extension.std.XConceptExtension;
@@ -77,6 +79,16 @@ public class ImportEventLog {
 	private XLog xlog;
 	private Automaton dafsa;
 	private Automaton reducedDafsa;
+
+	public ImportEventLog(){}
+
+	public ImportEventLog(BiMap<String, Integer> inverseLabelMapping, UnifiedMap<IntArrayList, IntArrayList> caseTracesMapping, Map<Integer, String> caseIDs)
+	{
+		this.inverseLabelMapping = inverseLabelMapping;
+		this.labelMapping=inverseLabelMapping.inverse();
+		this.caseTracesMapping = caseTracesMapping;
+		this.caseIDs = caseIDs;
+	}
 
 	public XLog importEventLog(String fileName) throws Exception
 	{
@@ -241,6 +253,182 @@ public class ImportEventLog {
 	{
 		this.inverseLabelMapping = HashBiMap.create(inverseLabelMapping);
 		return createReducedDAFSAfromLog(xLog);
+	}
+
+	public Automaton createReducedDAFSAfromPartialOrder(PartialOrder partialOrder, BiMap<String,Integer> inverseLabelMapping) throws IOException
+	{
+		this.inverseLabelMapping = HashBiMap.create(inverseLabelMapping);
+		return createReducedDAFSAfromPartialOrder(partialOrder);
+	}
+
+	private Automaton createReducedDAFSAfromPartialOrder(PartialOrder partialOrder) throws IOException {
+		caseTracesMapping = new UnifiedMap<>();
+		caseIDs = new UnifiedMap<>();
+		IntArrayList traces;
+		labelMapping = HashBiMap.create();
+		if(inverseLabelMapping==null) inverseLabelMapping = HashBiMap.create();
+		reductions = new UnifiedMap<>();
+		String eventName;
+		String traceID;
+		int translation = inverseLabelMapping.size()+1;
+		IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>> redTr;
+		UnifiedSet<DecodeTandemRepeats> setDecoders;
+		UnifiedMap<IntIntHashMap,UnifiedSet<IntArrayList>> configReducedTraceMapping = new UnifiedMap<>();
+		IntDAFSAInt fsa = new IntDAFSAInt();
+		Integer key = null;
+		visited = new UnifiedSet<>();
+		int uniqueTraces = 0, uniqueTRTraces = 0;
+		int it = 0;
+		IntArrayList reductionStats = new IntArrayList();
+		IntArrayList traceLengthStats = new IntArrayList();
+		IntArrayList redTraceLengthStats = new IntArrayList();
+
+		XTrace trace;
+		int i,j;
+		DecodeTandemRepeats decoder;
+
+		for(IntArrayList tr : partialOrder.representativeTraces())
+		{
+			traceID = "" + it;
+			if(visited.add(tr))
+			{
+				uniqueTraces++;
+				decoder = new DecodeTandemRepeats(tr, 0, tr.size());
+				reductionStats.add(decoder.getReductionLength());
+				traceLengthStats.add(decoder.trace().size());
+				redTraceLengthStats.add(decoder.reducedTrace().size());
+				if((redTr = reductions.get(decoder.reducedTrace()))==null)
+				{
+					uniqueTRTraces++;
+					redTr = new IntObjectHashMap<>();
+					reductions.put(decoder.reducedTrace(),redTr);
+					fsa.addMinWord(decoder.reducedTrace());
+					UnifiedSet<IntArrayList> reducedTraces;
+					if((reducedTraces = configReducedTraceMapping.get(decoder.finalReducedConfiguration))==null)
+					{
+						reducedTraces = new UnifiedSet<>();
+						configReducedTraceMapping.put(decoder.finalReducedConfiguration, reducedTraces);
+					}
+					reducedTraces.add(decoder.reducedTrace());
+				}
+				if((setDecoders=redTr.get(decoder.getReductionLength()))==null)
+				{
+					setDecoders = new UnifiedSet<>();
+					redTr.put(decoder.getReductionLength(),setDecoders);
+				}
+				setDecoders.add(decoder);
+			}
+			if((traces = caseTracesMapping.get(tr))==null)
+			{
+				traces = new IntArrayList();
+				caseTracesMapping.put(tr, traces);
+			}
+			traces.add(it);
+			caseIDs.put(it, traceID);
+			it++;
+		}
+		labelMapping = inverseLabelMapping.inverse();
+		this.reductionLength=reductionStats.average();
+		//System.out.println("Stats - Avg. : " + reductionStats.average() + "; Max : " + reductionStats.max() + "; Med. : " + reductionStats.median());
+		//System.out.println("Stats - Avg. : " + traceLengthStats.average() + "; Max : " + traceLengthStats.max() + "; Med. : " + traceLengthStats.median());
+		//System.out.println("Stats - Avg. : " + redTraceLengthStats.average() + "; Max : " + redTraceLengthStats.max() + "; Med. : " + redTraceLengthStats.median());
+		//System.out.println("Unique Traces : " + uniqueTraces);
+		//System.out.println("Unique TR Traces : " + uniqueTRTraces);
+		this.prepareLogAutomaton(fsa);
+		return new Automaton(stateMapping, labelMapping, inverseLabelMapping, transitionMapping, initialState, finalStates, caseTracesMapping, caseIDs, reductions, configReducedTraceMapping);
+	}
+
+	public Automaton createReducedDAFSAfromReducedTrace(ReducedTrace reducedTrace, BiMap<String,Integer> inverseLabelMapping) throws IOException
+	{
+		this.inverseLabelMapping = HashBiMap.create(inverseLabelMapping);
+		return createReducedDAFSAfromReducedTrace(reducedTrace);
+	}
+
+	private Automaton createReducedDAFSAfromReducedTrace(ReducedTrace reducedTrace) throws IOException {
+		caseTracesMapping = new UnifiedMap<>();
+		caseIDs = new UnifiedMap<>();
+		IntArrayList traces;
+		labelMapping = HashBiMap.create();
+		if(inverseLabelMapping==null) inverseLabelMapping = HashBiMap.create();
+		reductions = new UnifiedMap<>();
+		String eventName;
+		String traceID;
+		int translation = inverseLabelMapping.size()+1;
+		IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>> redTr;
+		UnifiedSet<DecodeTandemRepeats> setDecoders;
+		UnifiedMap<IntIntHashMap,UnifiedSet<IntArrayList>> configReducedTraceMapping = new UnifiedMap<>();
+		IntDAFSAInt fsa = new IntDAFSAInt();
+		Integer key = null;
+		visited = new UnifiedSet<>();
+		int uniqueTraces = 0, uniqueTRTraces = 0;
+		int it = 0;
+		IntArrayList reductionStats = new IntArrayList();
+		IntArrayList traceLengthStats = new IntArrayList();
+		IntArrayList redTraceLengthStats = new IntArrayList();
+
+		XTrace trace;
+		int i,j;
+		DecodeTandemRepeats decoder;
+
+
+		traceID = "" + it;
+		IntArrayList tr = reducedTrace.getDecoder().trace();
+		if(visited.add(tr))
+		{
+			uniqueTraces++;
+			decoder = reducedTrace.getDecoder();
+			reductionStats.add(decoder.getReductionLength());
+			//traceLengthStats.add(decoder.trace().size());
+			//redTraceLengthStats.add(decoder.reducedTrace().size());
+			if((redTr = reductions.get(decoder.reducedTrace()))==null)
+			{
+				uniqueTRTraces++;
+				redTr = new IntObjectHashMap<>();
+				reductions.put(decoder.reducedTrace(),redTr);
+				fsa.addMinWord(decoder.reducedTrace());
+				UnifiedSet<IntArrayList> reducedTraces;
+				if((reducedTraces = configReducedTraceMapping.get(decoder.finalReducedConfiguration))==null)
+				{
+					reducedTraces = new UnifiedSet<>();
+					configReducedTraceMapping.put(decoder.finalReducedConfiguration, reducedTraces);
+				}
+				reducedTraces.add(decoder.reducedTrace());
+			}
+			if((setDecoders=redTr.get(decoder.getReductionLength()))==null)
+			{
+				setDecoders = new UnifiedSet<>();
+				redTr.put(decoder.getReductionLength(),setDecoders);
+			}
+			setDecoders.add(decoder);
+		}
+		if((traces = caseTracesMapping.get(tr))==null)
+		{
+			traces = new IntArrayList();
+			caseTracesMapping.put(tr, traces);
+		}
+		traces.add(it);
+		caseIDs.put(it, traceID);
+
+		labelMapping = inverseLabelMapping.inverse();
+		this.reductionLength=reductionStats.average();
+		//System.out.println("Stats - Avg. : " + reductionStats.average() + "; Max : " + reductionStats.max() + "; Med. : " + reductionStats.median());
+		//System.out.println("Stats - Avg. : " + traceLengthStats.average() + "; Max : " + traceLengthStats.max() + "; Med. : " + traceLengthStats.median());
+		//System.out.println("Stats - Avg. : " + redTraceLengthStats.average() + "; Max : " + redTraceLengthStats.max() + "; Med. : " + redTraceLengthStats.median());
+		//System.out.println("Unique Traces : " + uniqueTraces);
+		//System.out.println("Unique TR Traces : " + uniqueTRTraces);
+		this.prepareLogAutomaton(fsa);
+		return new Automaton(stateMapping, labelMapping, inverseLabelMapping, transitionMapping, initialState, finalStates, caseTracesMapping, caseIDs, reductions, configReducedTraceMapping);
+	}
+
+	public Automaton createDAFSAfromDecodedTraces(UnifiedSet<IntArrayList> traces) throws Exception
+	{
+		IntDAFSAInt fsa = new IntDAFSAInt();
+		for(IntArrayList trace : traces)
+		{
+			fsa.addMinWord(trace);
+		}
+		prepareLogAutomaton(fsa);
+		return new Automaton(stateMapping, labelMapping, inverseLabelMapping, transitionMapping, initialState, finalStates, caseTracesMapping, caseIDs);
 	}
 
 	public Automaton createReducedDAFSAfromLog(XLog xLog) throws IOException

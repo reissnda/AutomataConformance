@@ -2,6 +2,8 @@ package au.qut.apromore.importer;
 
 import au.qut.apromore.automaton.Automaton;
 import au.qut.apromore.automaton.State;
+import au.unimelb.partialorders.PartialOrder;
+import au.unimelb.pattern.ReducedTrace;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.matrix.DoubleMatrix2D;
 import com.google.common.collect.BiMap;
@@ -39,6 +41,7 @@ import org.processmining.plugins.petrinet.structuralanalysis.util.SelfLoopTransi
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class DecomposingTRImporter extends ImportProcessModel
 {
@@ -82,6 +85,8 @@ public class DecomposingTRImporter extends ImportProcessModel
     public IntArrayList scompRGArcs =new IntArrayList();
     public IntArrayList scompRGSize =new IntArrayList();
     private IntObjectHashMap<UnifiedSet<IntArrayList>> componentsUniqueTraces = new IntObjectHashMap<>();
+    private Object[] pnetAndMarking;
+    private IntObjectHashMap<IntArrayList> componentsLabelMapping=new IntObjectHashMap<>();
 
     public DecomposingTRImporter(){}
 
@@ -90,6 +95,161 @@ public class DecomposingTRImporter extends ImportProcessModel
         importAndDecomposeModelAndLogForConformanceChecking(path, model, log);
     }
 
+    public DecomposingTRImporter(DecomposingTRImporter basicImporterWithModelDecompositions, PartialOrder partialOrder) throws IOException {
+        copyOverModelDecompositions(basicImporterWithModelDecompositions);
+        importAndDecomposeLogTracesFrom(partialOrder);
+    }
+
+    private void copyOverModelDecompositions(DecomposingTRImporter basicImporterWithModelDecompositions)
+    {
+        this.modelFSM=basicImporterWithModelDecompositions.modelFSM;
+        this.doDecomposition=basicImporterWithModelDecompositions.doDecomposition;
+        this.applySCompRule=basicImporterWithModelDecompositions.applySCompRule;
+        this.pnetAndMarking=basicImporterWithModelDecompositions.pnetAndMarking;
+        this.sComponentFSMs=basicImporterWithModelDecompositions.sComponentFSMs;
+        this.parallel=basicImporterWithModelDecompositions.parallel;
+        this.globalInverseLabels=basicImporterWithModelDecompositions.globalInverseLabels;
+        this.globalLabelMapping=basicImporterWithModelDecompositions.globalLabelMapping;
+        this.sComponentImporters=basicImporterWithModelDecompositions.sComponentImporters;
+        this.sComponentNets=basicImporterWithModelDecompositions.sComponentNets;
+        this.minModelMoves=basicImporterWithModelDecompositions.minModelMoves;
+        this.labelComponentsMapping=basicImporterWithModelDecompositions.labelComponentsMapping;
+        this.componentsLabelMapping=basicImporterWithModelDecompositions.componentsLabelMapping;
+    }
+
+    public DecomposingTRImporter(DecomposingTRImporter basicImporterWithModelDecompositions, ReducedTrace reducedTrace) throws IOException {
+        copyOverModelDecompositions(basicImporterWithModelDecompositions);
+        importAndDecomposeLogTracesFrom(reducedTrace);
+    }
+
+    public void testHybridDecisionTime(String path, String model, String log) throws Exception
+    {
+        Object[] pnetAndMarking;
+        this.path = path;
+        this.model = model;
+        if(model.endsWith(".bpmn"))
+            pnetAndMarking = this.importPetrinetFromBPMN(path + model);
+        else
+            pnetAndMarking = importPetriNetAndMarking(path + model);
+        //xLog = new ImportEventLog().importEventLog(path + log);
+        pnet = (Petrinet) pnetAndMarking[0];
+        Marking initM = (Marking) pnetAndMarking[1];
+        this.xLog = xLog;
+        this.pnet = pnet;
+        this.modelFSM = createFSMfromPetrinet(pnet, initM, null, null);
+
+        if(parallel>0) doDecomposition = true;
+        if(doDecomposition) {
+            long start = System.nanoTime();
+            PlaceInvariantCalculator calculator = new PlaceInvariantCalculator();
+            PlaceInvariantSet invMarking = calculator.calculate(context, pnet);
+            SComponentSet sComps = calculateSComponents(context, pnet, invMarking);
+
+            int i = 0;
+            //System.out.println();
+            for(SortedSet<PetrinetNode> component : sComps)
+            {
+                Petrinet sCompNet = new PetrinetImpl("net" + i);
+                for(PetrinetNode node : component)
+                {
+                    if((node.getAttributeMap().get(AttributeMap.SHAPE).getClass().getName().equals("org.processmining.models.shapes.Rectangle")))
+                    {
+                        org.processmining.models.graphbased.directed.petrinet.elements.Transition tr = null;
+                        for(org.processmining.models.graphbased.directed.petrinet.elements.Transition t : sCompNet.getTransitions())
+                            if(t.getLabel()==node.getLabel())
+                            {tr = t; break;}
+                        if(tr==null)
+                        {
+                            tr = sCompNet.addTransition(node.getLabel());
+                        }
+                        tr.setInvisible(((Transition) node).isInvisible());
+                        for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : node.getGraph().getOutEdges(node))
+                            if(component.contains(edge.getTarget()))
+                            {
+                                Place p = null;
+                                for(Place pl : sCompNet.getPlaces())
+                                    if(pl.getLabel()==edge.getTarget().getLabel())
+                                    {p = pl; break;}
+                                if(p==null) p = sCompNet.addPlace(edge.getTarget().getLabel());
+                                sCompNet.addArc(tr, p);
+                            }
+                    }
+                    else
+                    {
+                        Place p = null;
+                        for(Place pl : sCompNet.getPlaces())
+                            if(pl.getLabel()==node.getLabel())
+                            {p = pl; break;}
+                        if(p==null) p = sCompNet.addPlace(node.getLabel());
+                        for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : node.getGraph().getOutEdges(node))
+                            if(component.contains(edge.getTarget()))
+                            {
+                                org.processmining.models.graphbased.directed.petrinet.elements.Transition tr = null;
+                                for(org.processmining.models.graphbased.directed.petrinet.elements.Transition t : sCompNet.getTransitions())
+                                    if(t.getLabel()==edge.getTarget().getLabel())
+                                    {tr = t; break;}
+                                if(tr==null) tr = sCompNet.addTransition(edge.getTarget().getLabel());
+                                sCompNet.addArc(p, tr);
+                            }
+                    }
+                }
+                i++;
+                Marking m = new Marking();
+                for(Place p : initM)
+                {
+                    for(Place p2 : sCompNet.getPlaces())
+                        if(p2.getLabel().equals(p.getLabel()))
+                            m.add(p2);
+                }
+                ImportProcessModel importer = new ImportProcessModel();
+                Automaton fsm = importer.createFSMfromPetrinet(sCompNet, m, globalInverseLabels.inverse(), globalInverseLabels);
+                this.sComponentImporters.add(importer);
+                IntArrayList components;
+                sComponentFSMs.add(fsm);
+                //System.out.println(fsm.eventLabels());
+                //System.out.println(globalInverseLabels.inverse());
+                IntArrayList eventLabels = new IntArrayList();
+                for(Integer event : fsm.eventLabels().keySet())
+                {
+                    eventLabels.add(event);
+                    if((components = labelComponentsMapping.get(event))==null)
+                    {
+                        components = new IntArrayList();
+                        labelComponentsMapping.put(event, components);
+                    }
+                    components.add(sComponentFSMs.size()-1);
+                }
+                componentsLabelMapping.put(sComponentFSMs.size()-1,eventLabels);
+
+                //sComponentFSMs.get(sComponentFSMs.size()-1).toDot("/Users/daniel/Documents/workspace/paper_tests/Sepsis/" + sCompNet.getLabel() + ".dot");
+                //System.out.println(globalInverseLabels);
+                //System.out.println(sComponentFSMs.get(sComponentFSMs.size()-1).eventLabels());
+                //System.out.println(sComponentFSMs.get(sComponentFSMs.size()-1).inverseEventLabels());
+                sComponentNets.add(sCompNet);
+            }
+			/*int i = 1;
+			for (Automaton fsm : this.sComponentFSMs) {
+				fsm.toDot(path + model.substring(0, model.length() - 5) + i + ".dot");
+				SCompNetToDot(i-1, path + model.substring(0,model.length()-5) + "-" + i + ".dot");
+				i++;
+			}*/
+            //decomposeLogIntoProjectedDafsa(xLog);
+            decideSCompRule();
+            if(this.applySCompRule)
+                System.out.println(0);
+            else
+                System.out.println(TimeUnit.MILLISECONDS.convert(System.nanoTime()-start,TimeUnit.NANOSECONDS));
+        }
+        else
+        {
+            System.out.println(0);
+            //dafsa = new ImportEventLog().createDAFSAfromLog(xLog, modelFSM.inverseEventLabels());
+            //importer = new ImportEventLog();
+            //dafsa = importer.createReducedDAFSAfromLog(xLog, globalInverseLabels);
+            //avgReduction = importer.getReductionLength();
+        }
+        //decideTRrule();
+    }
 
     public void importAndDecomposeModelAndLogForConformanceChecking(String path, String model, String log) throws Exception
     {
@@ -103,7 +263,60 @@ public class DecomposingTRImporter extends ImportProcessModel
         xLog = new ImportEventLog().importEventLog(path + log);
         pnet = (Petrinet) pnetAndMarking[0];
         this.importAndDecomposeModelAndLogForConformanceChecking((Petrinet) pnetAndMarking[0], (Marking) pnetAndMarking[1], xLog);
+    }
 
+    public void importAndDecomposeModelForConformanceChecking(String modelFile, BiMap<Integer, String> labelMapping, BiMap<String, Integer> inverseLabelMapping) throws Exception
+    {
+        this.globalLabelMapping=labelMapping;
+        this.globalInverseLabels=inverseLabelMapping;
+        if(model.endsWith(".bpmn"))
+            pnetAndMarking = this.importPetrinetFromBPMN(modelFile);
+        else
+            pnetAndMarking = importPetriNetAndMarking(modelFile);
+        pnet = (Petrinet) pnetAndMarking[0];
+        this.importAndDecomposeModelForConformanceChecking((Petrinet) pnetAndMarking[0], (Marking) pnetAndMarking[1],globalLabelMapping,globalInverseLabels);
+    }
+
+    public void importAndDecomposeModelForConformanceChecking(Petrinet petrinet, Marking initialMarking, BiMap<Integer, String> labelMapping, BiMap<String, Integer> inverseLabelMapping) throws Exception
+    {
+        this.globalInverseLabels=inverseLabelMapping;
+        this.globalLabelMapping=labelMapping;
+        this.modelFSM = createFSMfromPetrinet(petrinet,initialMarking,globalLabelMapping,inverseEventLabelMapping);
+        this.pnet=petrinet;
+        if(parallel>0) doDecomposition = true;
+        if(doDecomposition)
+        {
+            decomposePetriNetIntoSComponentAutomata(pnet, initialMarking);
+            decideSCompRule();
+        }
+    }
+
+    private void importAndDecomposeLogTracesFrom(PartialOrder partialOrder) throws IOException {
+        if(doDecomposition) {
+            decomposeLogIntoProjectedDafsa(partialOrder);
+        }
+        else
+        {
+            //dafsa = new ImportEventLog().createDAFSAfromLog(xLog, modelFSM.inverseEventLabels());
+            importer = new ImportEventLog();
+            dafsa = importer.createReducedDAFSAfromPartialOrder(partialOrder, globalInverseLabels);
+            avgReduction = importer.getReductionLength();
+        }
+        decideTRrule();
+    }
+
+    private void importAndDecomposeLogTracesFrom(ReducedTrace reducedTrace) throws IOException {
+        if(doDecomposition) {
+            decomposeLogIntoProjectedDafsa(reducedTrace);
+        }
+        else
+        {
+            //dafsa = reducedTrace.getDafsa();
+            importer = new ImportEventLog();
+            dafsa = importer.createReducedDAFSAfromReducedTrace(reducedTrace, globalInverseLabels);
+            avgReduction = importer.getReductionLength();
+        }
+        applyTRRule=true;
     }
 
     public void importModelForStatistics(String path, String model) throws Exception
@@ -198,6 +411,223 @@ public class DecomposingTRImporter extends ImportProcessModel
         DecomposingConformanceImporter SCompImporter = new DecomposingConformanceImporter(modelFSM, caseTracesMapping, labelComponentsMapping, sComponentFSMs,
                 sComponentNets, sComponentImporters, caseIDs, componentDAFSAs, visited, componentsUniqueTraces, xLog, traceProjections, projectedLogs, path, model, doDecomposition, globalInverseLabels, globalLabelMapping);
         return SCompImporter;
+    }
+
+    private void decomposeLogIntoProjectedDafsa(ReducedTrace reducedTrace) throws IOException {
+        caseTracesMapping = new UnifiedMap<>();
+        String traceID="";
+        int it=0;
+        IntArrayList traces;
+        IntDAFSAInt fsa;
+        UnifiedMap<Integer, IntDAFSAInt> componentFSAs = new UnifiedMap<Integer, IntDAFSAInt>();
+        org.eclipse.collections.impl.list.mutable.primitive.IntArrayList components;
+        UnifiedMap<Integer, IntArrayList> projectedTraces;
+        IntArrayList projectedTrace;
+        DecodeTandemRepeats decoder;
+        UnifiedMap<IntArrayList,IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>>> reductions;
+        IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>> equivDecoders;
+        UnifiedSet<DecodeTandemRepeats> setDecoders;
+        UnifiedMap<IntIntHashMap, UnifiedSet<IntArrayList>> configReducedTracesMapping;
+        UnifiedSet<IntArrayList> reducedTraces;
+        IntArrayList traceReductions = new IntArrayList();
+        UnifiedSet<IntArrayList> compUniqueTraces;
+
+        IntArrayList redTrace = reducedTrace.getDecoder().reducedTrace();
+        visited.add(redTrace);
+        traceID=""+it++;
+
+        projectedTraces = new UnifiedMap<Integer, IntArrayList>();
+        for(int component =0; component<sComponentFSMs.size();component++)
+        {
+            if((compUniqueTraces=this.componentsUniqueTraces.get(component))==null)
+            {
+                compUniqueTraces = new UnifiedSet<>();
+                this.componentsUniqueTraces.put(component,compUniqueTraces);
+            }
+            if(compUniqueTraces.add(redTrace))
+            {
+                decoder = new DecodeTandemRepeats(reducedTrace.getDecoder(),componentsLabelMapping.get(component));
+                projectedTraces.put(component,decoder.reducedTrace());
+                traceReductions.add(decoder.getReductionLength());
+                if ((reductions = componentReductions.get(component)) == null) {
+                    reductions = new UnifiedMap<>();
+                    componentReductions.put(component, reductions);
+                }
+                if ((equivDecoders = reductions.get(decoder.reducedTrace())) == null) {
+                    equivDecoders = new IntObjectHashMap<>();
+                    reductions.put(decoder.reducedTrace(), equivDecoders);
+                    if ((fsa = componentFSAs.get(component)) == null) {
+                        fsa = new IntDAFSAInt();
+                        componentFSAs.put(component, fsa);
+                    }
+                    fsa.addMinWord(decoder.reducedTrace());
+                    if ((configReducedTracesMapping = componentConfigurationReducedTracesMapping.get(component)) == null) {
+                        configReducedTracesMapping = new UnifiedMap<>();
+                        componentConfigurationReducedTracesMapping.put(component, configReducedTracesMapping);
+                    }
+                    if ((reducedTraces = configReducedTracesMapping.get(decoder.finalReducedConfiguration)) == null) {
+                        reducedTraces = new UnifiedSet<>();
+                        configReducedTracesMapping.put(decoder.finalReducedConfiguration, reducedTraces);
+                    }
+                    reducedTraces.add(decoder.reducedTrace());
+                }
+                if ((setDecoders = equivDecoders.get(decoder.getReductionLength())) == null) {
+                    setDecoders = new UnifiedSet<>();
+                    equivDecoders.put(decoder.getReductionLength(), setDecoders);
+                }
+                setDecoders.add(decoder);
+            }
+        }
+
+        traceProjections.put(redTrace, projectedTraces);
+        if((traces = caseTracesMapping.get(redTrace))==null)
+        {
+            traces = new IntArrayList();
+            caseTracesMapping.put(redTrace, traces);
+        }
+        traces.add(it);
+        caseIDs.put(it, traceID);
+        //it++;
+        for(IntArrayList uniqueTrace : caseTracesMapping.keySet())
+        {
+            for(Integer component : traceProjections.get(uniqueTrace).keySet())
+            {
+                UnifiedMap<IntArrayList, IntArrayList> projectedLog;
+                if((projectedLog = projectedLogs.get(component))==null)
+                {
+                    projectedLog = new UnifiedMap<>();
+                    projectedLogs.put(component, projectedLog);
+                }
+                projectedLog.put(traceProjections.get(uniqueTrace).get(component), caseTracesMapping.get(uniqueTrace));
+            }
+        }
+        globalLabelMapping = globalInverseLabels.inverse();
+        for(Integer component : componentFSAs.keySet())
+        {
+            componentDAFSAs.put(component, preprocessDAFSA(componentFSAs.get(component), component));
+        }
+        this.avgReduction = traceReductions.average();
+        //System.out.println(xLog.size());
+        //System.out.println(visited.size());
+        //System.out.println(globalInverseLabels);
+        //System.out.println(it);
+    }
+
+    private void decomposeLogIntoProjectedDafsa(PartialOrder partialOrder) throws IOException {
+        caseTracesMapping = new UnifiedMap<>();
+        String traceID="";
+        int it=0;
+        IntArrayList traces;
+        IntDAFSAInt fsa;
+        UnifiedMap<Integer, IntDAFSAInt> componentFSAs = new UnifiedMap<Integer, IntDAFSAInt>();
+        org.eclipse.collections.impl.list.mutable.primitive.IntArrayList components;
+        UnifiedMap<Integer, IntArrayList> projectedTraces;
+        IntArrayList projectedTrace;
+        DecodeTandemRepeats decoder;
+        UnifiedMap<IntArrayList,IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>>> reductions;
+        IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>> equivDecoders;
+        UnifiedSet<DecodeTandemRepeats> setDecoders;
+        UnifiedMap<IntIntHashMap, UnifiedSet<IntArrayList>> configReducedTracesMapping;
+        UnifiedSet<IntArrayList> reducedTraces;
+        IntArrayList traceReductions = new IntArrayList();
+        UnifiedSet<IntArrayList> compUniqueTraces;
+
+        for (IntArrayList tr : partialOrder.representativeTraces())
+        {
+            traceID=""+it++;
+            projectedTraces = new UnifiedMap<Integer, IntArrayList>();
+            for(int component=0; component < sComponentFSMs.size(); component++)
+                projectedTraces.put(component, new IntArrayList());
+            for (int label : tr.toArray())
+            {
+                if((components = labelComponentsMapping.get(label))!=null)
+                {
+                    for(int component : components.toArray())
+                    {
+                        projectedTraces.get(component).add(label);
+                    }
+                }
+            }
+
+            if(visited.add(tr))
+            {
+                traceProjections.put(tr, projectedTraces);
+                for(Integer component : projectedTraces.keySet())
+                {
+                    projectedTrace = projectedTraces.get(component);
+
+                    if((compUniqueTraces=this.componentsUniqueTraces.get(component))==null)
+                    {
+                        compUniqueTraces = new UnifiedSet<>();
+                        this.componentsUniqueTraces.put(component,compUniqueTraces);
+                    }
+                    if(compUniqueTraces.add(projectedTrace))
+                    {
+                        decoder = new DecodeTandemRepeats(projectedTrace, 0, projectedTrace.size());
+                        traceReductions.add(decoder.getReductionLength());
+                        if ((reductions = componentReductions.get(component)) == null) {
+                            reductions = new UnifiedMap<>();
+                            componentReductions.put(component, reductions);
+                        }
+                        if ((equivDecoders = reductions.get(decoder.reducedTrace())) == null) {
+                            equivDecoders = new IntObjectHashMap<>();
+                            reductions.put(decoder.reducedTrace(), equivDecoders);
+                            if ((fsa = componentFSAs.get(component)) == null) {
+                                fsa = new IntDAFSAInt();
+                                componentFSAs.put(component, fsa);
+                            }
+                            fsa.addMinWord(decoder.reducedTrace());
+                            if ((configReducedTracesMapping = componentConfigurationReducedTracesMapping.get(component)) == null) {
+                                configReducedTracesMapping = new UnifiedMap<>();
+                                componentConfigurationReducedTracesMapping.put(component, configReducedTracesMapping);
+                            }
+                            if ((reducedTraces = configReducedTracesMapping.get(decoder.finalReducedConfiguration)) == null) {
+                                reducedTraces = new UnifiedSet<>();
+                                configReducedTracesMapping.put(decoder.finalReducedConfiguration, reducedTraces);
+                            }
+                            reducedTraces.add(decoder.reducedTrace());
+                        }
+                        if ((setDecoders = equivDecoders.get(decoder.getReductionLength())) == null) {
+                            setDecoders = new UnifiedSet<>();
+                            equivDecoders.put(decoder.getReductionLength(), setDecoders);
+                        }
+                        setDecoders.add(decoder);
+                    }
+                }
+            }
+
+            if((traces = caseTracesMapping.get(tr))==null)
+            {
+                traces = new IntArrayList();
+                caseTracesMapping.put(tr, traces);
+            }
+            traces.add(it);
+            caseIDs.put(it, traceID);
+            it++;
+        }
+        for(IntArrayList uniqueTrace : caseTracesMapping.keySet())
+        {
+            for(Integer component : traceProjections.get(uniqueTrace).keySet())
+            {
+                UnifiedMap<IntArrayList, IntArrayList> projectedLog;
+                if((projectedLog = projectedLogs.get(component))==null)
+                {
+                    projectedLog = new UnifiedMap<>();
+                    projectedLogs.put(component, projectedLog);
+                }
+                projectedLog.put(traceProjections.get(uniqueTrace).get(component), caseTracesMapping.get(uniqueTrace));
+            }
+        }
+        globalLabelMapping = globalInverseLabels.inverse();
+        for(Integer component : componentFSAs.keySet())
+        {
+            componentDAFSAs.put(component, preprocessDAFSA(componentFSAs.get(component), component));
+        }
+        this.avgReduction = traceReductions.average();
+        //System.out.println(xLog.size());
+        //System.out.println(visited.size());
+        //System.out.println(globalInverseLabels);
+        //System.out.println(it);
     }
 
     private void decomposeLogIntoProjectedDafsa(XLog xLog) throws IOException
@@ -614,8 +1044,10 @@ public class DecomposingTRImporter extends ImportProcessModel
             sComponentFSMs.add(fsm);
             //System.out.println(fsm.eventLabels());
             //System.out.println(globalInverseLabels.inverse());
+            IntArrayList componentLabels = new IntArrayList();
             for(Integer event : fsm.eventLabels().keySet())
             {
+                componentLabels.add(event);
                 if((components = labelComponentsMapping.get(event))==null)
                 {
                     components = new IntArrayList();
@@ -623,6 +1055,7 @@ public class DecomposingTRImporter extends ImportProcessModel
                 }
                 components.add(sComponentFSMs.size()-1);
             }
+            componentsLabelMapping.put(sComponentFSMs.size()-1,componentLabels);
             //sComponentFSMs.get(sComponentFSMs.size()-1).toDot("/Users/daniel/Documents/workspace/paper_tests/Sepsis/" + sCompNet.getLabel() + ".dot");
             //System.out.println(globalInverseLabels);
             //System.out.println(sComponentFSMs.get(sComponentFSMs.size()-1).eventLabels());
@@ -815,5 +1248,23 @@ public class DecomposingTRImporter extends ImportProcessModel
         }
         pw.println("}");
         pw.close();
+    }
+
+    public Object[] getPnetAndMarking() {
+        return pnetAndMarking;
+    }
+
+    public int getLogSize()
+    {
+        int logSize=0;
+        if(this.xLog==null)
+        {
+            for(IntArrayList trace : caseTracesMapping.keySet())
+            {
+                logSize+=caseTracesMapping.get(trace).size();
+            }
+        }
+        else logSize=xLog.size();
+        return logSize;
     }
 }

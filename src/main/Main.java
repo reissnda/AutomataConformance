@@ -63,7 +63,7 @@ public class Main {
 		paths.add("/Users/dreissner/Documents/Evaluations/TandemRepeatsPaper/private/IM/");
 		paths.add("/Users/dreissner/Documents/Evaluations/TandemRepeatsPaper/private/SM/");
 		IntArrayList publicModels = new IntArrayList();
-		for(int i=1;i<18;i++) publicModels.add(i);
+		for(int i=1;i<13;i++) publicModels.add(i);
 		IntArrayList privateModels = new IntArrayList();
 		privateModels.addAll(1,2,3,4,6,7,9,10);
 
@@ -88,10 +88,11 @@ public class Main {
 				//TRImporter importer = new TRImporter(path, log, model);
 				//importer.createAutomata();
 				//importer.gatherTRStatistics();
-				DecomposingConformanceImporter importer = new DecomposingConformanceImporter();
-				importer.importAndDecomposeModelForStatistics(path, model);
-				if(importer.scompRGSizeBeforeTauRemoval.isEmpty()) importer.scompRGSizeBeforeTauRemoval.add(0);
-				System.out.println(importer.scompRGSizeBeforeTauRemoval.average());
+				DecomposingTRImporter importer = new DecomposingTRImporter();
+				//importer.importAndDecomposeModelForStatistics(path, model);
+				//if(importer.scompRGSizeBeforeTauRemoval.isEmpty()) importer.scompRGSizeBeforeTauRemoval.add(0);
+				//System.out.println(importer.scompRGSizeBeforeTauRemoval.average());
+				importer.testHybridDecisionTime(path, model, log);
 			}
 		}
 

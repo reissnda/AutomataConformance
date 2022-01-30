@@ -58,7 +58,7 @@ public class Automaton {
 	private BiMap<Integer, String> eventLabels;
 	private BiMap<String, Integer> inverseEventLabels;
 	private BiMap<Integer, String> globalEventLabels;
-	private BiMap<String,Integer> globalInverseLabels;
+	private BiMap<String, Integer> globalInverseLabels;
 	private Map<Integer, Transition> transitions;
 	private int source;
 	private IntHashSet finalStates;
@@ -71,23 +71,57 @@ public class Automaton {
 	private Map<IntIntHashMap, List<IntArrayList>> configCaseMapping;
 	public Map<Integer, String> caseIDs;
 	public IntIntHashMap minimalFinalConfig;
-	public int loops=0;
+	public int loops = 0;
 	public UnifiedMap<IntArrayList, IntObjectHashMap<UnifiedSet<DecodeTandemRepeats>>> reductions;
-	private UnifiedMap<IntIntHashMap,UnifiedSet<IntArrayList>> configDecoderMapping;
+	private UnifiedMap<IntIntHashMap, UnifiedSet<IntArrayList>> configDecoderMapping;
 	private IntHashSet parallelLabels = null;
 	public int totalSize = 0;
 	public int numberNodes = 0;
 	public int numberArcs = 0;
 
 
-	public Automaton()
-	{
+	public Automaton() {
 		this.states = HashBiMap.create();
-		states.put(0,new State(0,true,true));
+		states.put(0, new State(0, true, true));
 		this.finalStates = new IntHashSet();
 		this.finalStates.add(0);
-		this.source=0;
-		this.transitions= HashBiMap.create();
+		this.source = 0;
+		this.transitions = HashBiMap.create();
+	}
+
+	//Single trace Automaton
+	public Automaton(IntArrayList trace, BiMap<Integer, String> labelMapping, BiMap<String, Integer> inverseLabelMapping, Map<Integer, String> caseIDs)
+	{
+		this.states = HashBiMap.create();
+		this.transitions = HashBiMap.create();
+		this.eventLabels = labelMapping;
+		this.inverseEventLabels = inverseLabelMapping;
+		this.caseIDs = caseIDs;
+		this.caseTracesMapping = new UnifiedMap<>();
+		caseTracesMapping.put(trace, IntArrayList.newListWith(1));
+		this.source = 0;
+		this.finalStates = new IntHashSet();
+		int id=0;
+		states.put(id, new State(id++,true,true));
+		for(int pos=0; pos < trace.size(); pos++)
+		{
+			states.put(pos+1, new State(pos+1,false,pos==trace.size()-1));
+			Transition tr = new Transition(states.get(pos), states.get(pos+1), trace.get(pos));
+			transitions.put(tr.id(), tr);
+			states.get(pos).outgoingTransitions().add(tr);
+			states.get(pos+1).incomingTransitions().add(tr);
+		}
+		TransitionComparator tComp = new TransitionComparator();
+		for(State st : this.states.values())
+		{
+			st.incomingTransitions().sortThis(tComp);
+			st.outgoingTransitions().sortThis(tComp);
+		}
+		//this.toDot("/Users/daniel/Documents/workspace/dafsa/Road Traffic/test.dot");
+		numberNodes = states.size();
+		numberArcs = transitions.size();
+		totalSize = numberArcs + numberNodes;
+		this.calculateLogFutures();
 	}
 
 	public Automaton(Map<Integer, State> states, BiMap<Integer, String> labelMapping, BiMap<String, Integer> inverseLabelMapping, Map<Integer, Transition> transitions,
@@ -100,8 +134,10 @@ public class Automaton {
 		this.source = initialState;
 		this.finalStates = FinalStates;
 		this.caseTracesMapping = caseTracesMapping;
+		IntArrayList cases;
 		for(IntArrayList trace : caseTracesMapping.keySet())
-			caseFrequencies.put(trace,  caseTracesMapping.get(trace).size());
+			if((cases=caseTracesMapping.get(trace))!=null)
+				caseFrequencies.put(trace,  cases.size());
 		this.caseIDs = caseIDs;
 		TransitionComparator tComp = new TransitionComparator();
 		for(State st : this.states.values())

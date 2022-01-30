@@ -212,6 +212,14 @@ public class ImportProcessModel
 
 	}
 
+	public Object[] importPetriNetAndMarkingFromPNMLorBPMN(String fileName) throws Exception
+	{
+		if(fileName.substring(fileName.length()-5,fileName.length()).equals(".bpmn"))
+			return importPetrinetFromBPMN(fileName);
+		else
+			return importPetriNetAndMarking(fileName);
+	}
+
 	public Object[] importPetriNetAndMarking(String fileName) throws Exception
 	{
 		FakePluginContext context = new FakePluginContext();
@@ -227,7 +235,77 @@ public class ImportProcessModel
 			}
 		}
 		obj[0] = pnet;
-		return obj;
+		Marking finalMarking = new Marking();
+		for (Place p : pnet.getPlaces()) {
+			if (pnet.getOutEdges(p).isEmpty()) {
+				finalMarking.add(p);
+			}
+		}
+		Object[] object = new Object[3];
+		object[0]=obj[0];
+		object[1]=obj[1];
+		object[2]=finalMarking;
+		return object;
+	}
+
+	public String importPetrinetForStatistics(String fileName) throws Exception
+	{
+		FakePluginContext context = new FakePluginContext();
+		PnmlImportNet imp = new PnmlImportNet();
+		Object[] obj =  (Object[]) imp.importFile(context, fileName);
+		Petrinet pnet = (Petrinet) obj[0];
+		int i = pnet.getNodes().size();
+		for(org.processmining.models.graphbased.directed.petrinet.elements.Transition tr : pnet.getTransitions())
+		{
+			if(tr.getLabel().equals(""))
+			{
+				tr.getAttributeMap().put(AttributeMap.LABEL, "empty_" + ++i);
+			}
+		}
+		obj[0] = pnet;
+		Marking finalMarking = new Marking();
+		for (Place p : pnet.getPlaces()) {
+			if (pnet.getOutEdges(p).isEmpty()) {
+				finalMarking.add(p);
+			}
+		}
+		Object[] object = new Object[3];
+		object[0]=obj[0];
+		object[1]=obj[1];
+		object[2]=finalMarking;
+		i=0;
+		for(PetrinetNode transition : pnet.getTransitions())
+		{
+			transitions++;
+			if(transition.getLabel().isEmpty())
+				transition.getAttributeMap().put(AttributeMap.LABEL, "empty_" + (i++));
+			if(pnet.getOutEdges(transition).size()>=2) {
+				parallel++;
+				for(PetrinetEdge outEdge : pnet.getOutEdges((transition)))
+				{
+					PetrinetNode target = (PetrinetNode) outEdge.getTarget();
+					for(PetrinetEdge outEdge2 : pnet.getOutEdges(target))
+					{
+						org.processmining.models.graphbased.directed.petrinet.elements.Transition tr = (org.processmining.models.graphbased.directed.petrinet.elements.Transition) outEdge2.getTarget();
+						pLabels.add(tr.getLabel());
+					}
+				}
+			}
+		}
+		for(PetrinetNode node : pnet.getPlaces())
+		{
+			places++;
+			if(node.getLabel().isEmpty())
+				node.getAttributeMap().put(AttributeMap.LABEL, "empty_" + (i++));
+			if(pnet.getOutEdges(node).size()>=2) {
+				choice++;
+			}
+		}
+		arcs=pnet.getEdges().size();
+		size = arcs + places + transitions;
+		String[] folders=fileName.split("/");
+		String result=folders[folders.length-1] + "," + size + "," + places + "," + transitions + "," + choice + "," + parallel + "\n";
+		return result;
 	}
 	
 	public Object[] importPetrinetFromBPMN(String fileName) throws Exception

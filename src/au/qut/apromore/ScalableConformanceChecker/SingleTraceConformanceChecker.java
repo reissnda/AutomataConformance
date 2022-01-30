@@ -28,7 +28,7 @@ public class SingleTraceConformanceChecker
     //Alignment for a single trace
     public SingleTraceConformanceChecker(IntArrayList trace, Automaton modelAutomaton, BiMap<Integer, String> labelMapping, BiMap<String, Integer> inverseLabelMapping, Map<Integer, String> caseIDs)
     {
-        BiMap<Integer, State> states = HashBiMap.create();
+        /*BiMap<Integer, State> states = HashBiMap.create();
         BiMap<Integer, Transition> transitions = HashBiMap.create();
         UnifiedMap<IntArrayList,IntArrayList> caseTracesMapping = new UnifiedMap<>();
         caseTracesMapping.put(trace, IntArrayList.newListWith(1));
@@ -42,12 +42,13 @@ public class SingleTraceConformanceChecker
             states.put(pos+1, new State(pos+1,false,pos==trace.size()-1));
             Transition tr = new Transition(states.get(pos), states.get(pos+1), trace.get(pos));
             transitions.put(tr.eventID(), tr);
-        }
-        try {
-            dafsa = new Automaton(states, labelMapping, inverseLabelMapping, transitions, initialState, finalStates,caseTracesMapping, caseIDs);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        }*/
+        Automaton dafsa = new Automaton( trace, labelMapping, inverseLabelMapping, caseIDs);
+        //try {
+        //    dafsa = new Automaton(states, labelMapping, inverseLabelMapping, transitions, initialState, finalStates,caseTracesMapping, caseIDs);
+        //} catch (IOException e) {
+        //    e.printStackTrace();
+        //}
         ScalableConformanceChecker checker = new ScalableConformanceChecker(dafsa, modelAutomaton, Integer.MAX_VALUE);
         res = checker.traceAlignmentsMapping.get(trace);
         //System.out.println("Cost: " + res.getInfo().get(PNRepResult.RAWFITNESSCOST));

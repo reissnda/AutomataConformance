@@ -1,0 +1,42 @@
+Manifest-Version: 1.0
+Main-Class: main.FitnessWithTRreductionMain
+Class-Path: Log.jar BPMN.jar CNet.jar Spex.jar weka.jar uma 2.jar gurobi
+ .jar jgraph.jar oplall.jar Widgets.jar ILPMiner.jar ProLoCon.jar BPMNMi
+ ner.jar jmathplot.jar PetriNets.jar pnapi-1.0.jar poi-4.1.2.jar AlphaMi
+ ner.jar BasicUtils.jar colt-1.2.0.jar guava-19.0.jar guava-20.0.jar hub
+ -pn-1.0.jar jdom-1.1.1.jar jdom-2.0.6.jar junit-4.12.jar LogToDAFSA.jar
+  lpsolve55j.jar PNAnalysis.jar Properties.jar javacsv-2.1.jar junit-3.8
+ .1.jar kxml2-2.2.3.jar kxml2-2.3.0.jar ProcessTree.jar tablelayout.jar 
+ uitopia-6.5.jar widgets-6.5.jar javailp-1.2a.jar jbpt-0.2.429.jar jsr33
+ 1-2.1.0.jar jung-api-2.1.jar log4j-1.2.17.jar PNetReplayer.jar ProM-Plu
+ gins.jar ETConformance.jar google-common.jar trove4j-3.0.3.jar uitopia-
+ 6.5-1.jar umaBPDiff-1.0.jar AntiAlignments.jar curvesapi-1.06.jar Induc
+ tiveMiner.jar java-cup-0.11a.jar jaxb-api-2.3.1.jar jgrapht-jdk1.6.jar 
+ weka-dev-src 3.jar xmlbeans-3.1.0.jar commons-cli-2.0.jar jaxb-impl-2.3
+ .2.jar LogAbstractions.jar poi-ooxml-4.1.2.jar rsyntaxtextarea.jar slic
+ kerbox1-6.5.jar weka-dev-3.7.11.jar activation-1.1.1.jar EfficientStora
+ ge.jar fake-context-1.0.jar jdom-2.0.6-junit.jar OpenXES-20160212.jar p
+ rom6-models-6.5.jar slf4j-api-1.7.30.jar SparseBitSet-1.2.jar Accepting
+ PetriNet.jar commons-lang3-3.5.jar commons-math3-3.0.jar fodina-2013-01
+ -02.jar jackson-all-1.9.0.jar jaxb-core-2.3.0.1.jar jmathplot-unknown.j
+ ar snappy-java-1.1.7.jar TransitionSystems.jar commons-codec-1.13.jar c
+ ompress-lzf-1.0.3.jar DecomposedReplayer.jar guava-20.0-javadoc.jar gua
+ va-20.0-sources.jar gwt-soyc-vis-2.0.4.jar jdom-2.0.6-contrib.jar jdom-
+ 2.0.6-javadoc.jar jdom-2.0.6-sources.jar poi-examples-4.1.2.jar poi-exc
+ elant-4.1.2.jar prefuse-core-1.0.0.jar prom6-contexts-6.5.jar Signature
+ Discovery.jar commons-logging-1.2.jar commons-math3-3.6.1.jar jsr331-gu
+ robi-2.1.0.jar jsr331-linear-2.1.0.jar jung-graph-impl-2.1.jar PatternA
+ bstractions.jar ujmp-complete-0.2.5.jar jgoodies-forms-1.4.1.jar poi-sc
+ ratchpad-4.1.2.jar prom6-contexts-6.5-1.jar commons-compress-1.19.jar j
+ goodies-common-1.2.0.jar PNetAlignmentAnalysis.jar prom6-framework-6.5-
+ 1.jar google-collections-1.0.jar nikefsmonitor-20130503.jar commons-lan
+ g3-3.5-tests.jar poi-ooxml-schemas-4.1.2.jar univocity-parsers-1.5.5.ja
+ r collections-generic-4.01.jar commons-collections4-4.4.jar OpenXES-XSt
+ ream-20160212.jar commons-lang3-3.5-javadoc.jar commons-lang3-3.5-sourc
+ es.jar conversion-1.0.20161111-1.jar eclipse-collections-9.1.0.jar gwt-
+ dev-2.5.1-rc1-sources.jar gwt-dev-2.8.0-rc3-javadoc.jar eclipse-collect
+ ions-api-9.1.0.jar pentaho-package-manager-1.0.8.jar commons-lang3-3.5-
+ test-sources.jar eventstr-confchecking-osgi-1.0.jar simmetrics_jar_v1_6
+ _2_d07_02_07.jar eclipse-collections-9.1.0-sources.jar eventstr-confche
+ cking-osgi-1.0-sources.jar
+

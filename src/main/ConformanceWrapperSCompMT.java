@@ -111,7 +111,7 @@ public class ConformanceWrapperSCompMT implements Callable<ConformanceWrapperSCo
             logSize = (int) pro.logSize;
 
             pnresult = pro.alignmentResult;
-            PNRepResult repres = AlignmentTest.computeCost((PetrinetGraph) pnetAndM[0], xLog);
+            PNRepResult repres = AlignmentTest.computeCost((PetrinetGraph) pnetAndM[0], xLog, true);
             //System.out.println("Alignments finished");
             for(SyncReplayResult res : repres)
             {
@@ -158,7 +158,7 @@ public class ConformanceWrapperSCompMT implements Callable<ConformanceWrapperSCo
             Petrinet pnet = (Petrinet) new ImportProcessModel().importPetriNetAndMarking(path + model)[0];
             long start = System.nanoTime();
             AlignmentTest ilp_alignments = new AlignmentTest();
-            PNRepResult res = ilp_alignments.computeCost(pnet, xLog,numTraceThreads);
+            PNRepResult res = ilp_alignments.computeCost(pnet, xLog,numTraceThreads, true);
             time=TimeUnit.MILLISECONDS.convert(System.nanoTime()-start,TimeUnit.NANOSECONDS);
             cost= (Double) res.getInfo().get(PNRepResult.RAWFITNESSCOST);
         }

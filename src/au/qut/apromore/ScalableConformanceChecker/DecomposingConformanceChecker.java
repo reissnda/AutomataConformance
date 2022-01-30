@@ -76,18 +76,18 @@ public class DecomposingConformanceChecker {
 		this.minModelMoves = (int) Math.round((new SingleTraceConformanceChecker(new IntArrayList(),decompositions.modelFSM,decompositions.globalLabelMapping, decompositions.globalInverseLabels, new UnifiedMap<>())).res.getInfo().get(PNRepResult.RAWFITNESSCOST));
 		ArrayList<Integer> compList = new ArrayList<Integer>();
 		for(int pos = 0; pos < decompositions.sComponentFSMs.size(); pos++) compList.add(pos);
-		compList.parallelStream().forEach
+		/*compList.parallelStream().forEach
 				(
 						sComp -> componentAlignments.put
 								(
 										sComp,
 										new ScalableConformanceChecker(decompositions.componentDAFSAs.get(sComp), decompositions.sComponentFSMs.get(sComp), Integer.MAX_VALUE)
 								)
-				);
-		/*for(int pos=0; pos < decompositions.sComponentFSMs.size(); pos++)
+				);*/
+		for(int pos=0; pos < decompositions.sComponentFSMs.size(); pos++)
 		{
 			componentAlignments.put(pos,new ScalableConformanceChecker(decompositions.componentDAFSAs.get(pos), decompositions.sComponentFSMs.get(pos), Integer.MAX_VALUE));
-		}*/
+		}
 		/*for(Automaton modelFSM : decompositions.sComponentFSMs)
 		{
 			for(int label : modelFSM.minimalFinalConfig.keySet().toArray())
@@ -150,6 +150,8 @@ public class DecomposingConformanceChecker {
 			IntIntHashMap ids = new IntIntHashMap();
 			for(int comp : projectedTraces.keySet())
 			{
+				if(componentAlignments.get(comp)==null)
+					System.out.println("Problem");
 				UnifiedMap<IntArrayList, AllSyncReplayResult> test = componentAlignments.get(comp).traceAlignmentsMapping;
 				projectedAlignments.put(comp, test.get(projectedTraces.get(comp)));
 				ids.put(comp, 0);
@@ -201,6 +203,8 @@ public class DecomposingConformanceChecker {
 				if(relevantComponents.isEmpty() && event>=0)
 				{
 					labels.add(decompositions.globalLabelMapping.get(event));
+					if(decompositions.globalLabelMapping.get(event)==null)
+						System.out.println("Problem");
 					operations.add(StepTypes.L);
 					logMoves++;
 					continue;
@@ -339,6 +343,8 @@ public class DecomposingConformanceChecker {
 					if (isCoherent)
 					{
 						labels.add(eventLabel);
+						if(eventLabel==null)
+							System.out.println("Problem");
 						operations.add(curStep);
 						if (curStep == StepTypes.L) logMoves++;
 						for (int compo : relevantComponents.toArray()) ids.put(compo, ids.get(compo) + 1);
@@ -534,7 +540,7 @@ public class DecomposingConformanceChecker {
 		double moveLogFitness = 0;
 		double traceLength = 0;
 		double queuedStates = 0;
-		logSize =  decompositions.xLog.size();
+		logSize =  decompositions.getLogSize();
 		//System.out.println(logSize + " - " + alignmentResult.size() + " - " + decompositions.caseTracesMapping.size());
 		//System.out.println(logSize);
 		//for(IntArrayList trace : decompositions.caseTracesMapping.keySet())
